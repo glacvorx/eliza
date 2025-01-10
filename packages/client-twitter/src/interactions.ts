@@ -30,16 +30,18 @@ export const twitterMessageHandlerTemplate =
 
 {{providers}}
 
-{{characterPostExamples}}
-
+# Style:
 {{postDirections}}
+
+# Message Examples:
+{{characterMessageExamples}}
 
 Recent interactions between {{agentName}} and other users:
 {{recentPostInteractions}}
 
 {{recentPosts}}
 
-# TASK: Generate a post/reply in the voice, style and perspective of {{agentName}} (@{{twitterUserName}}) while using the thread of tweets as additional context:
+# TASK: Generate a post/reply in a short and concise manner in the voice, style and perspective of {{agentName}} (@{{twitterUserName}}) while using the thread of tweets as additional context:
 
 Current Post:
 {{currentPost}}
@@ -128,7 +130,8 @@ export class TwitterInteractionClient {
             let uniqueTweetCandidates = [...mentionCandidates];
             // Only process target users if configured
             if (this.client.twitterConfig.TWITTER_TARGET_USERS.length) {
-                const TARGET_USERS = this.client.twitterConfig.TWITTER_TARGET_USERS;
+                const TARGET_USERS =
+                    this.client.twitterConfig.TWITTER_TARGET_USERS;
 
                 elizaLogger.log("Processing target users:", TARGET_USERS);
 
@@ -378,7 +381,8 @@ export class TwitterInteractionClient {
         }
 
         // get usernames into str
-        const validTargetUsersStr = this.client.twitterConfig.TWITTER_TARGET_USERS.join(",");
+        const validTargetUsersStr =
+            this.client.twitterConfig.TWITTER_TARGET_USERS.join(",");
 
         const shouldRespondContext = composeContext({
             state,
