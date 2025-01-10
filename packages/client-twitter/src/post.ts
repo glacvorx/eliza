@@ -55,14 +55,13 @@ Guidelines:
 
 Actions (respond only with tags):
 [LIKE] - Perfect topic match AND aligns with character (9.8/10)
-[RETWEET] - Exceptional content that embodies character's expertise (9.5/10)
-[QUOTE] - Can add substantial domain expertise (9.5/10)
 [REPLY] - Can contribute meaningful, expert-level insight (9.5/10)
 
 Tweet:
 {{currentTweet}}
 
-# Respond with qualifying action tags only. Default to NO action unless extremely confident of relevance.` + postActionResponseFooter;
+# Respond with qualifying action tags only. Default to NO action unless extremely confident of relevance.` +
+    postActionResponseFooter;
 
 /**
  * Truncate text to fit within the Twitter character limit, ensuring it ends at a complete sentence.
@@ -111,7 +110,7 @@ export class TwitterPostClient {
         this.client = client;
         this.runtime = runtime;
         this.twitterUsername = this.client.twitterConfig.TWITTER_USERNAME;
-        this.isDryRun = this.client.twitterConfig.TWITTER_DRY_RUN
+        this.isDryRun = this.client.twitterConfig.TWITTER_DRY_RUN;
 
         // Log configuration on initialization
         elizaLogger.log("Twitter Client Configuration:");
@@ -188,8 +187,9 @@ export class TwitterPostClient {
                             `Next action processing scheduled in ${actionInterval} minutes`
                         );
                         // Wait for the full interval before next processing
-                        await new Promise((resolve) =>
-                            setTimeout(resolve, actionInterval * 60 * 1000) // now in minutes
+                        await new Promise(
+                            (resolve) =>
+                                setTimeout(resolve, actionInterval * 60 * 1000) // now in minutes
                         );
                     }
                 } catch (error) {
@@ -215,7 +215,10 @@ export class TwitterPostClient {
             elizaLogger.log("Tweet generation loop disabled (dry run mode)");
         }
 
-        if (this.client.twitterConfig.ENABLE_ACTION_PROCESSING && !this.isDryRun) {
+        if (
+            this.client.twitterConfig.ENABLE_ACTION_PROCESSING &&
+            !this.isDryRun
+        ) {
             processActionsLoop().catch((error) => {
                 elizaLogger.error(
                     "Fatal error in process actions loop:",
@@ -273,6 +276,22 @@ export class TwitterPostClient {
             {
                 id: tweet.id,
                 timestamp: Date.now(),
+            }
+        );
+
+        // Update recent posts cache
+        const lastPosts = await runtime.cacheManager.get<{
+            recentPosts: string[];
+        }>(`twitter/${client.profile.username}/recentPosts`);
+
+        const recentPosts = lastPosts?.recentPosts || [];
+        recentPosts.unshift(newTweetContent); // Add new tweet at the beginning
+        if (recentPosts.length > 50) recentPosts.pop(); // Keep last 50 posts
+
+        await runtime.cacheManager.set(
+            `twitter/${client.profile.username}/recentPosts`,
+            {
+                recentPosts,
             }
         );
 
@@ -414,6 +433,17 @@ export class TwitterPostClient {
                 "twitter"
             );
 
+            // Fetch recent timeline for context
+            const homeTimeline = await this.client.fetchTimelineForActions(30);
+            const timelineContext = homeTimeline
+                .map((tweet) => `@${tweet.username}: ${tweet.text}`)
+                .join("\n\n===New Tweet===\n");
+
+            // log here that we are reading X tweets from For you page
+            elizaLogger.log(
+                `Retrieved timeline context for tweet generation: ${homeTimeline.length} tweets`
+            );
+
             const topics = this.runtime.character.topics.join(", ");
 
             const state = await this.runtime.composeState(
@@ -428,6 +458,8 @@ export class TwitterPostClient {
                 },
                 {
                     twitterUserName: this.client.profile.username,
+                    timelineContext: `Recent timeline context:\n${timelineContext}`,
+                    recentPosts: await this.getRecentPosts(10),
                 }
             );
 
@@ -439,11 +471,16 @@ export class TwitterPostClient {
             });
 
             elizaLogger.debug("generate post prompt:\n" + context);
+            // elizaLogger.log(
+            //     "Timeline context in state:",
+            //     state.timelineContext
+            // );
+            elizaLogger.log("Recent posts in state:", state.recentPosts);
 
             const newTweetContent = await generateText({
                 runtime: this.runtime,
                 context,
-                modelClass: ModelClass.SMALL,
+                modelClass: ModelClass.MEDIUM,
             });
 
             // First attempt to clean content
@@ -480,7 +517,7 @@ export class TwitterPostClient {
             }
 
             // Truncate the content to the maximum tweet length specified in the environment settings, ensuring the truncation respects sentence boundaries.
-            const maxTweetLength = this.client.twitterConfig.MAX_TWEET_LENGTH
+            const maxTweetLength = this.client.twitterConfig.MAX_TWEET_LENGTH;
             if (maxTweetLength) {
                 cleanedContent = truncateToCompleteSentence(
                     cleanedContent,
@@ -1025,7 +1062,7 @@ export class TwitterPostClient {
                 return;
             }
 
-            elizaLogger.debug("Final reply text to be sent:", replyText);
+            elizaLogger.log("Final reply text to be sent:", replyText);
 
             let result;
 
@@ -1063,5 +1100,30 @@ export class TwitterPostClient {
 
     async stop() {
         this.stopProcessingActions = true;
+    }
+
+    /**
+     * Fetches recent posts from cache to avoid duplicate content
+     * @param count Number of recent posts to fetch
+     * @returns String containing recent posts formatted for the template
+     */
+    private async getRecentPosts(count: number = 10): Promise<string> {
+        try {
+            const lastPosts = await this.runtime.cacheManager.get<{
+                recentPosts: string[];
+            }>(`twitter/${this.twitterUsername}/recentPosts`);
+
+            if (!lastPosts?.recentPosts) {
+                return "No recent posts.";
+            }
+
+            return lastPosts.recentPosts
+                .slice(0, count)
+                .map((post, i) => `${i + 1}. ${post}`)
+                .join("\n");
+        } catch (error) {
+            elizaLogger.error("Error fetching recent posts:", error);
+            return "Error fetching recent posts.";
+        }
     }
 }
