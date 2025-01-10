@@ -193,10 +193,10 @@ export async function generateText({
 
     elizaLogger.log("Generating text...");
 
-    elizaLogger.info("Generating text with options:", {
-        modelProvider: runtime.modelProvider,
-        model: modelClass,
-    });
+    // elizaLogger.info("Generating text with options:", {
+    //     modelProvider: runtime.modelProvider,
+    //     model: modelClass,
+    // });
 
     const provider = runtime.modelProvider;
     const endpoint =
@@ -269,7 +269,7 @@ export async function generateText({
             break;
     }
 
-    elizaLogger.info("Selected model:", model);
+    // elizaLogger.info("Selected model:", model);
 
     const modelConfiguration = runtime.character?.settings?.modelConfig;
     const temperature =
@@ -1501,8 +1501,9 @@ export const generateWebSearch = async (
             includeAnswer: true,
             maxResults: 3, // 5 (default)
             topic: "general", // "general"(default) "news"
-            searchDepth: "basic", // "basic"(default) "advanced"
+            searchDepth: "advanced", // "basic"(default) "advanced"
             includeImages: false, // false (default) true
+            includeDomains: ["dexscreener.com", "coingecko.com"],
         });
         return response;
     } catch (error) {

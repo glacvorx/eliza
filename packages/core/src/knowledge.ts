@@ -45,9 +45,9 @@ async function get(
     const uniqueSources = [
         ...new Set(
             fragments.map((memory) => {
-                elizaLogger.log(
-                    `Matched fragment: ${memory.content.text} with similarity: ${memory.similarity}`
-                );
+                // elizaLogger.log(
+                //     `Matched fragment: ${memory.content.text} with similarity: ${memory.similarity}`
+                // )
                 return memory.content.source;
             })
         ),
