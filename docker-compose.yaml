@@ -3,6 +3,8 @@ services:
         build:
             context: .
             dockerfile: Dockerfile
+        command:
+            ["pnpm", "start", "--character=characters/Agent_YP.character.json"]
         stdin_open: true
         tty: true
         volumes:
