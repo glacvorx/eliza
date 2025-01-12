@@ -7,7 +7,13 @@ PEM_PATH="./agentyp-main.pem"
 # Ensure correct permissions for .pem file
 chmod 400 $PEM_PATH
 
-# SSH into the instance and set up the environment (only if needed)
+# First, check if local .env exists
+if [ ! -f .env ]; then
+    echo "Error: Local .env file not found!"
+    exit 1
+fi
+
+# SSH into the instance and set up the environment
 ssh -i $PEM_PATH ubuntu@$AWS_IP << 'EOF'
     # Check if Docker is installed
     if ! command -v docker &> /dev/null; then
@@ -43,14 +49,9 @@ ssh -i $PEM_PATH ubuntu@$AWS_IP << 'EOF'
     fi
 EOF
 
-# Copy .env file if it exists locally
-if [ -f .env ]; then
-    echo "Copying .env file..."
-    scp -i $PEM_PATH .env ubuntu@$AWS_IP:~/eliza/
-else
-    echo "No .env file found locally. Creating from .env.example..."
-    scp -i $PEM_PATH .env.example ubuntu@$AWS_IP:~/eliza/.env
-fi
+# Copy .env file directly to project directory
+echo "Copying .env file to project directory..."
+scp -i $PEM_PATH .env ubuntu@$AWS_IP:~/eliza/.env
 
 # SSH into the instance and start/update the application
 ssh -i $PEM_PATH ubuntu@$AWS_IP << 'EOF'
@@ -67,15 +68,36 @@ ssh -i $PEM_PATH ubuntu@$AWS_IP << 'EOF'
         exit 1
     fi
 
+    # Fix .env file format if needed
+    echo "Verifying .env file format..."
+    # Remove any Windows line endings and ensure proper format
+    sed -i 's/\r$//' .env
+    # Ensure each line has proper KEY=VALUE format
+    sed -i '/^[^#]/s/ = /=/' .env
+
+    # Set proper permissions
+    chmod 600 .env
+
     echo "Verifying environment variables..."
-    # Check a few critical environment variables
+    # Check critical environment variables
     source .env
+
+    # Check Twitter credentials
+    if [ -z "$TWITTER_USERNAME" ] || [ -z "$TWITTER_PASSWORD" ] || [ -z "$TWITTER_EMAIL" ]; then
+        echo "Error: Twitter credentials are not properly set in .env"
+        echo "TWITTER_USERNAME: ${TWITTER_USERNAME:-not set}"
+        echo "TWITTER_PASSWORD: ${TWITTER_PASSWORD:-not set}"
+        echo "TWITTER_EMAIL: ${TWITTER_EMAIL:-not set}"
+        exit 1
+    fi
+
+    # Check OpenAI API key
     if [ -z "$OPENAI_API_KEY" ]; then
-        echo "Warning: OPENAI_API_KEY is not set in .env"
+        echo "Error: OPENAI_API_KEY is not set in .env"
+        exit 1
     fi
-    if [ -z "$TWITTER_USERNAME" ]; then
-        echo "Warning: TWITTER_USERNAME is not set in .env"
-    fi
+
+    echo "Environment variables verified successfully."
 
     # Stop existing containers
     echo "Stopping existing containers..."
@@ -84,7 +106,7 @@ ssh -i $PEM_PATH ubuntu@$AWS_IP << 'EOF'
     # Pull latest images and rebuild
     echo "Building and starting containers..."
     sudo docker-compose pull
-    sudo docker-compose --env-file .env up -d --build
+    sudo docker-compose up -d --build
 
     # Wait for container to be ready
     echo "Waiting for container to be ready..."
@@ -102,10 +124,13 @@ ssh -i $PEM_PATH ubuntu@$AWS_IP << 'EOF'
     echo "Verifying environment variables in container..."
     CONTAINER_ID=$(sudo docker-compose ps -q tee)
     if [ ! -z "$CONTAINER_ID" ]; then
-        echo "Checking OPENAI_API_KEY..."
-        sudo docker exec $CONTAINER_ID sh -c 'echo $OPENAI_API_KEY'
-        echo "Checking TWITTER_USERNAME..."
+        echo "Checking environment variables in container:"
+        echo "TWITTER_USERNAME:"
         sudo docker exec $CONTAINER_ID sh -c 'echo $TWITTER_USERNAME'
+        echo "TWITTER_EMAIL:"
+        sudo docker exec $CONTAINER_ID sh -c 'echo $TWITTER_EMAIL'
+        echo "OPENAI_API_KEY (first 10 chars):"
+        sudo docker exec $CONTAINER_ID sh -c 'echo ${OPENAI_API_KEY:0:10}...'
     else
         echo "Warning: Container not found!"
     fi
