@@ -116,10 +116,6 @@ ssh -i $PEM_PATH ubuntu@$AWS_IP << 'EOF'
     echo "Container Status:"
     sudo docker-compose ps
 
-    # Show build and startup events
-    echo "Recent Events:"
-    sudo docker-compose events --json | tail -n 5
-
     # Verify environment variables in container
     echo "Verifying environment variables in container..."
     CONTAINER_ID=$(sudo docker-compose ps -q tee)
