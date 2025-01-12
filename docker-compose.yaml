@@ -11,7 +11,46 @@ services:
             - /var/run/tappd.sock:/var/run/tappd.sock
             - tee:/app/packages/client-twitter/src/tweetcache
             - tee:/app/db.sqlite
-        env_file: .env
+        environment:
+            # OpenAI Configuration
+            - OPENAI_API_KEY=${OPENAI_API_KEY}
+            - SMALL_OPENAI_MODEL=${SMALL_OPENAI_MODEL}
+            - MEDIUM_OPENAI_MODEL=${MEDIUM_OPENAI_MODEL}
+            - LARGE_OPENAI_MODEL=${LARGE_OPENAI_MODEL}
+            - EMBEDDING_OPENAI_MODEL=${EMBEDDING_OPENAI_MODEL}
+            - IMAGE_OPENAI_MODEL=${IMAGE_OPENAI_MODEL}
+            - USE_OPENAI_EMBEDDING=${USE_OPENAI_EMBEDDING}
+
+            # Twitter Configuration
+            - TWITTER_USERNAME=${TWITTER_USERNAME}
+            - TWITTER_PASSWORD=${TWITTER_PASSWORD}
+            - TWITTER_EMAIL=${TWITTER_EMAIL}
+            - TWITTER_COOKIES=${TWITTER_COOKIES}
+            - TWITTER_POLL_INTERVAL=${TWITTER_POLL_INTERVAL}
+            - TWITTER_SEARCH_ENABLE=${TWITTER_SEARCH_ENABLE}
+            - TWITTER_TARGET_USERS=${TWITTER_TARGET_USERS}
+            - TWITTER_SPACES_ENABLE=${TWITTER_SPACES_ENABLE}
+            - TWITTER_RETRY_LIMIT=${TWITTER_RETRY_LIMIT}
+
+            # Post Settings
+            - POST_INTERVAL_MIN=${POST_INTERVAL_MIN}
+            - POST_INTERVAL_MAX=${POST_INTERVAL_MAX}
+            - POST_IMMEDIATELY=${POST_IMMEDIATELY}
+            - ACTION_INTERVAL=${ACTION_INTERVAL}
+            - ENABLE_ACTION_PROCESSING=${ENABLE_ACTION_PROCESSING}
+
+            # Feature Flags
+            - IMAGE_GEN=${IMAGE_GEN}
+            - USE_OLLAMA_EMBEDDING=${USE_OLLAMA_EMBEDDING}
+
+            # Server Configuration
+            - SERVER_PORT=${SERVER_PORT}
+        deploy:
+            resources:
+                limits:
+                    memory: 4G
+                reservations:
+                    memory: 2G
         ports:
             - "3000:3000"
         restart: always
