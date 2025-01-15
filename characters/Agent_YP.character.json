@@ -1,6 +1,6 @@
 {
     "name": "agent_yp",
-    "plugins": ["../../packages/plugin-web-search/src/index.ts"],
+    "plugins": [],
     "clients": ["twitter"],
     "modelProvider": "openai",
     "settings": {
