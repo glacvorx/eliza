@@ -1,8 +1,4 @@
-import {
-    Client,
-    elizaLogger,
-    IAgentRuntime,
-} from "@elizaos/core";
+import { Client, elizaLogger, IAgentRuntime } from "@elizaos/core";
 import { ClientBase } from "./base.ts";
 import { validateTwitterConfig, TwitterConfig } from "./environment.ts";
 import { TwitterInteractionClient } from "./interactions.ts";
@@ -54,7 +50,8 @@ class TwitterManager {
 
 export const TwitterClientInterface: Client = {
     async start(runtime: IAgentRuntime) {
-        const twitterConfig: TwitterConfig = await validateTwitterConfig(runtime);
+        const twitterConfig: TwitterConfig =
+            await validateTwitterConfig(runtime);
 
         elizaLogger.log("Twitter client started");
 
@@ -71,8 +68,12 @@ export const TwitterClientInterface: Client = {
             await manager.search.start();
         }
 
-        // Start interactions (mentions, replies)
-        await manager.interaction.start();
+        // Start interactions (mentions, replies) if enabled
+        if (twitterConfig.ENABLE_INTERACTION_PROCESSING) {
+            await manager.interaction.start();
+        } else {
+            elizaLogger.log("Twitter interactions disabled by configuration");
+        }
 
         // If Spaces are enabled, start the periodic check
         if (manager.space) {

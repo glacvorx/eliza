@@ -58,6 +58,7 @@ export const twitterEnvSchema = z.object({
     POST_INTERVAL_MIN: z.number().int(),
     POST_INTERVAL_MAX: z.number().int(),
     ENABLE_ACTION_PROCESSING: z.boolean(),
+    ENABLE_INTERACTION_PROCESSING: z.boolean().default(false),
     ACTION_INTERVAL: z.number().int(),
     POST_IMMEDIATELY: z.boolean(),
     TWITTER_SPACES_ENABLE: z.boolean().default(false),
@@ -178,6 +179,12 @@ export async function validateTwitterConfig(
                 parseBooleanFromText(
                     runtime.getSetting("ENABLE_ACTION_PROCESSING") ||
                         process.env.ENABLE_ACTION_PROCESSING
+                ) ?? false,
+
+            ENABLE_INTERACTION_PROCESSING:
+                parseBooleanFromText(
+                    runtime.getSetting("ENABLE_INTERACTION_PROCESSING") ||
+                        process.env.ENABLE_INTERACTION_PROCESSING
                 ) ?? false,
 
             // init in minutes (min 1m)
