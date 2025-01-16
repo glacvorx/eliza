@@ -1,57 +1,20 @@
-node_modules
-/out
+# Ignore .pem files
+*.pem
 
-.env
-.env.production
-.env.local
-.env_main
-concatenated-output.ts
-embedding-cache.json
-packages/plugin-buttplug/intiface-engine
-
-.idea
-.DS_Store
-
+# Node
+node_modules/
 dist/
-# Allow models directory but ignore model files
-models/*.gguf
+.env
 
-cookies.json
+# Docker
+.docker/
 
-db.sqlite
-searches/
-tweets/
+# Logs
+*.log
+output.log
 
-*.gguf
-*.onnx
-*.wav
-*.mp3
+# OS
+.DS_Store
+Thumbs.db
 
-logs/
-
-test-report.json
-content_cache/
-test_data/
-tokencache/
-tweetcache/
-twitter_cookies.json
-timeline_cache.json
-
-*.sqlite
-
-characters/
-
-packages/core/src/providers/cache
-packages/core/src/providers/cache/*
-cache/*
-packages/plugin-coinbase/src/plugins/transactions.csv
-
-tsup.config.bundled_*.mjs
-
-.turbo
-.cursorrules
-
-coverage
-.eslintcache
-
-agent/content
+characters/Agent_YP.character.json
