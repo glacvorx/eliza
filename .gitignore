@@ -23,3 +23,6 @@ characters/*
 
 deploy-direct.sh
 deploy.sh
+
+cache/
+.turbo/

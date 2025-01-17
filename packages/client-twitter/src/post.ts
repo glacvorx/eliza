@@ -494,8 +494,7 @@ export class TwitterPostClient {
                 } else if (typeof parsedResponse === "string") {
                     cleanedContent = parsedResponse;
                 }
-            } catch (error) {
-                error.linted = true; // make linter happy since catch needs a variable
+            } catch {
                 // If not JSON, clean the raw content
                 cleanedContent = newTweetContent
                     .replace(/^\s*{?\s*"text":\s*"|"\s*}?\s*$/g, "") // Remove JSON-like wrapper
@@ -531,7 +530,10 @@ export class TwitterPostClient {
             const fixNewLines = (str: string) => str.replaceAll(/\\n/g, "\n\n"); //ensures double spaces
 
             // Final cleaning
-            cleanedContent = removeQuotes(fixNewLines(cleanedContent));
+            cleanedContent = removeQuotes(fixNewLines(cleanedContent))
+                .replace(/,\s*$/g, "") // Remove trailing commas
+                .replace(/["']\s*,?\s*$/g, "") // Remove trailing quotes with optional comma
+                .trim();
 
             if (this.isDryRun) {
                 elizaLogger.info(
@@ -581,36 +583,56 @@ export class TwitterPostClient {
         elizaLogger.debug("generate tweet content response:\n" + response);
 
         // First clean up any markdown and newlines
-        const cleanedResponse = response
+        let cleanedContent = response
             .replace(/```json\s*/g, "") // Remove ```json
             .replace(/```\s*/g, "") // Remove any remaining ```
             .replaceAll(/\\n/g, "\n")
             .trim();
 
-        // Try to parse as JSON first
-        try {
-            const jsonResponse = JSON.parse(cleanedResponse);
-            if (jsonResponse.text) {
-                return this.trimTweetLength(jsonResponse.text);
-            }
-            if (typeof jsonResponse === "object") {
-                const possibleContent =
-                    jsonResponse.content ||
-                    jsonResponse.message ||
-                    jsonResponse.response;
-                if (possibleContent) {
-                    return this.trimTweetLength(possibleContent);
-                }
-            }
-        } catch (error) {
-            error.linted = true; // make linter happy since catch needs a variable
+        // Remove any JSON-style metadata patterns
+        cleanedContent = cleanedContent
+            .replace(/"?user"?\s*:\s*"[^"]*"\s*,?\s*/g, "") // Remove "user": "..."
+            .replace(/"?agent_yp"?\s*,?\s*/g, "") // Remove "agent_yp"
+            .replace(/"?text"?\s*:\s*/g, "") // Remove "text":
+            .replace(/"?action"?\s*:\s*"[^"]*"\s*,?\s*/g, "") // Remove "action": "..."
+            .replace(/^\s*{\s*|\s*}\s*$/g, "") // Remove outer braces
+            .replace(/^["']|["']$/g, "") // Remove outer quotes
+            .replace(/,\s*$/g, "") // Remove trailing commas
+            .trim();
 
-            // If JSON parsing fails, treat as plain text
-            elizaLogger.debug("Response is not JSON, treating as plain text");
+        // Try to parse as JSON if it still looks like JSON
+        if (cleanedContent.startsWith("{") && cleanedContent.endsWith("}")) {
+            try {
+                const jsonResponse = JSON.parse(cleanedContent);
+                if (typeof jsonResponse === "string") {
+                    cleanedContent = jsonResponse;
+                } else if (jsonResponse.text) {
+                    cleanedContent = jsonResponse.text;
+                } else if (typeof jsonResponse === "object") {
+                    const possibleContent =
+                        jsonResponse.content ||
+                        jsonResponse.message ||
+                        jsonResponse.response;
+                    if (possibleContent) {
+                        cleanedContent = possibleContent;
+                    }
+                }
+            } catch {
+                // If JSON parsing fails, keep the cleaned content as is
+                elizaLogger.debug("Failed to parse remaining JSON structure");
+            }
         }
 
-        // If not JSON or no valid content found, clean the raw text
-        return this.trimTweetLength(cleanedResponse);
+        // Final cleanup
+        cleanedContent = cleanedContent
+            .replace(/^["']|["']$/g, "") // Remove any remaining outer quotes
+            .replace(/\\"/g, '"') // Unescape quotes
+            .replace(/\s+/g, " ") // Normalize whitespace
+            .replace(/,\s*$/g, "") // Remove trailing commas again (in case they were in the JSON content)
+            .replace(/["']\s*,?\s*$/g, "") // Remove trailing quotes with optional comma
+            .trim();
+
+        return this.trimTweetLength(cleanedContent);
     }
 
     // Helper method to ensure tweet length compliance
