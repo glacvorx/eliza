@@ -49,6 +49,9 @@ const twitterPostTemplate = `
 
 {{postDirections}}
 
+# Recent Timeline Context
+{{timelineContext}}
+
 # Task: Generate a post in the voice and style and perspective of {{agentName}} @{{twitterUserName}}.
 Write a post that is {{adjective}} about {{topic}} (without mentioning {{topic}} directly), from the perspective of {{agentName}}. Do not add commentary or acknowledge this request, just write the post.
 Your response should be 1, 2, or 3 sentences (choose the length at random).
@@ -511,6 +514,29 @@ export class TwitterPostClient {
                 "twitter"
             );
 
+            // Fetch cached timeline for context
+            const cachedTimeline = await this.client.getCachedTimeline();
+            let timelineContext = "";
+            if (cachedTimeline && cachedTimeline.length > 0) {
+                // Format the last 5 tweets from the timeline for context with clear separators
+                const recentTweets = cachedTimeline.slice(0, 5);
+                timelineContext = "Recent tweets in timeline:\n\n" + 
+                    recentTweets.map(tweet => 
+                        `Tweet ID: ${tweet.id}\nAuthor: @${tweet.username}\nContent: ${tweet.text}\n-------------------`
+                    ).join("\n\n");
+                
+                // Debug log showing truncated view of extracted tweets
+                elizaLogger.debug("Extracted tweets from cache for context:", 
+                    recentTweets.map(tweet => ({
+                        id: tweet.id,
+                        username: tweet.username,
+                        text: tweet.text.length > 50 ? tweet.text.substring(0, 50) + '...' : tweet.text
+                    }))
+                );
+            } else {
+                elizaLogger.debug("No cached timeline available for context generation");
+            }
+
             const topics = this.runtime.character.topics.join(", ");
             const maxTweetLength = this.client.twitterConfig.MAX_TWEET_LENGTH;
             const state = await this.runtime.composeState(
@@ -526,6 +552,7 @@ export class TwitterPostClient {
                 {
                     twitterUserName: this.client.profile.username,
                     maxTweetLength,
+                    timelineContext,
                 }
             );
 
