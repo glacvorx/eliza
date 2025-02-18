@@ -74,9 +74,6 @@ Guidelines:
   - Promotional/marketing unless directly relevant
 
 Actions (respond only with tags):
-[LIKE] - Perfect topic match AND aligns with character (9.8/10)
-[RETWEET] - Exceptional content that embodies character's expertise (9.5/10)
-[QUOTE] - Can add substantial domain expertise (9.5/10)
 [REPLY] - Can contribute meaningful, expert-level insight (9.5/10)
 
 Tweet:
@@ -772,6 +769,11 @@ export class TwitterPostClient {
 
             for (const tweet of timelines) {
                 try {
+                    // Add random delay before processing each tweet
+                    const delaySeconds = this.getRandomDelay();
+                    elizaLogger.log(`Adding random delay of ${delaySeconds} seconds before processing next tweet`);
+                    await new Promise(resolve => setTimeout(resolve, delaySeconds * 1000));
+
                     // Skip if we've already processed this tweet
                     const memory =
                         await this.runtime.messageManager.getMemoryById(
@@ -1536,5 +1538,11 @@ export class TwitterPostClient {
                 }
             }
         }
+    }
+
+    private getRandomDelay(): number {
+        const minDelay = 10; // Minimum delay in seconds
+        const maxDelay = 30; // Maximum delay in seconds
+        return Math.floor(Math.random() * (maxDelay - minDelay + 1)) + minDelay;
     }
 }
