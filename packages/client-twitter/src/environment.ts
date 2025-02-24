@@ -79,6 +79,7 @@ export const twitterEnvSchema = z.object({
         .default(ActionTimelineType.ForYou),
     TWITTER_ACTION_DELAY_MIN: z.number().int(),
     TWITTER_ACTION_DELAY_MAX: z.number().int(),
+    TWITTER_CLIENT_USER_AGENT: z.string(),
 });
 
 export type TwitterConfig = z.infer<typeof twitterEnvSchema>;
@@ -253,6 +254,10 @@ export async function validateTwitterConfig(
                     process.env.TWITTER_ACTION_DELAY_MAX,
                 60
             ),
+
+            TWITTER_CLIENT_USER_AGENT:
+                runtime.getSetting("TWITTER_CLIENT_USER_AGENT") ||
+                process.env.TWITTER_CLIENT_USER_AGENT,
         };
 
         return twitterEnvSchema.parse(twitterConfig);

@@ -239,7 +239,25 @@ export class ClientBase extends EventEmitter {
         if (ClientBase._twitterClients[username]) {
             this.twitterClient = ClientBase._twitterClients[username];
         } else {
-            this.twitterClient = new Scraper();
+            const USER_AGENT = twitterConfig.TWITTER_CLIENT_USER_AGENT;
+            if (USER_AGENT) {
+                this.twitterClient = new Scraper({
+                    transform: {
+                        request(input: RequestInfo | URL, init?: RequestInit) {
+                            // Merge the custom headers with existing ones
+                            const headers = new Headers(init?.headers || {});
+                            headers.set('User-Agent', USER_AGENT);
+                            
+                            return [input, { 
+                                ...init,
+                                headers 
+                            }];
+                        },
+                    }
+                });
+            } else {
+                this.twitterClient = new Scraper();
+            }
             ClientBase._twitterClients[username] = this.twitterClient;
         }
 

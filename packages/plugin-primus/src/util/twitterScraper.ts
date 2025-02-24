@@ -16,7 +16,24 @@ export class TwitterScraper {
     }
 
     public async login() {
-        this.scraper = new Scraper();
+        const USER_AGENT = process.env.TWITTER_CLIENT_USER_AGENT;
+        if (USER_AGENT) {
+            this.scraper = new Scraper({
+                transform: {
+                    request(input: RequestInfo | URL, init?: RequestInit) {
+                        const headers = new Headers(init?.headers || {});
+                        headers.set('User-Agent', USER_AGENT);
+                        
+                        return [input, { 
+                            ...init,
+                            headers 
+                        }];
+                    },
+                }
+            });
+        } else {
+            this.scraper = new Scraper();
+        }
         const username = process.env.TWITTER_USERNAME;
         const password = process.env.TWITTER_PASSWORD;
         const email = process.env.TWITTER_EMAIL;

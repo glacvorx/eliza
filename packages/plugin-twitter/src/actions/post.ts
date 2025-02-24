@@ -90,7 +90,26 @@ async function postTweet(
 ): Promise<boolean> {
     try {
         const twitterClient = runtime.clients.twitter?.client?.twitterClient;
-        const scraper = twitterClient || new Scraper();
+        let scraper: any;
+
+        const USER_AGENT = runtime.getSetting("TWITTER_CLIENT_USER_AGENT");
+        if (USER_AGENT) {
+            scraper = twitterClient || new Scraper({
+                transform: {
+                    request(input: RequestInfo | URL, init?: RequestInit) {
+                        const headers = new Headers(init?.headers || {});
+                        headers.set('User-Agent', USER_AGENT);
+                        
+                        return [input, { 
+                            ...init,
+                            headers 
+                        }];
+                    },
+                }
+            });
+        } else {
+            scraper = twitterClient || new Scraper();
+        }
 
         if (!twitterClient) {
             const username = runtime.getSetting("TWITTER_USERNAME");
