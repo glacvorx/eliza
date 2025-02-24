@@ -1,5 +1,5 @@
 services:
-    tee:
+    eliza:
         build:
             context: .
             dockerfile: Dockerfile
@@ -9,8 +9,8 @@ services:
         tty: true
         volumes:
             - /var/run/tappd.sock:/var/run/tappd.sock
-            - tee:/app/packages/client-twitter/src/tweetcache
-            - tee:/app/db.sqlite
+            - eliza:/app/packages/client-twitter/src/tweetcache
+            - eliza:/app/db.sqlite
         environment:
             # OpenAI Configuration
             - OPENAI_API_KEY=${OPENAI_API_KEY}
@@ -45,6 +45,25 @@ services:
 
             # Server Configuration
             - SERVER_PORT=${SERVER_PORT}
+
+            # Additional Configuration
+            - REDPILL_API_KEY=${REDPILL_API_KEY}
+            - ELEVENLABS_XI_API_KEY=${ELEVENLABS_XI_API_KEY}
+            - ELEVENLABS_MODEL_ID=${ELEVENLABS_MODEL_ID}
+            - ELEVENLABS_VOICE_ID=${ELEVENLABS_VOICE_ID}
+            - ELEVENLABS_VOICE_STABILITY=${ELEVENLABS_VOICE_STABILITY}
+            - ELEVENLABS_VOICE_SIMILARITY_BOOST=${ELEVENLABS_VOICE_SIMILARITY_BOOST}
+            - ELEVENLABS_VOICE_STYLE=${ELEVENLABS_VOICE_STYLE}
+            - ELEVENLABS_VOICE_USE_SPEAKER_BOOST=${ELEVENLABS_VOICE_USE_SPEAKER_BOOST}
+            - ELEVENLABS_OPTIMIZE_STREAMING_LATENCY=${ELEVENLABS_OPTIMIZE_STREAMING_LATENCY}
+            - ELEVENLABS_OUTPUT_FORMAT=${ELEVENLABS_OUTPUT_FORMAT}
+            - BIRDEYE_API_KEY=${BIRDEYE_API_KEY}
+            - SOL_ADDRESS=${SOL_ADDRESS}
+            - SLIPPAGE=${SLIPPAGE}
+            - SOLANA_RPC_URL=${SOLANA_RPC_URL}
+            - HELIUS_API_KEY=${HELIUS_API_KEY}
+            - WALLET_SECRET_SALT=${WALLET_SECRET_SALT}
+
         deploy:
             resources:
                 limits:
@@ -53,7 +72,8 @@ services:
                     memory: 2G
         ports:
             - "3000:3000"
+            - "5173:5173"
         restart: always
 
 volumes:
-    tee:
+    eliza:

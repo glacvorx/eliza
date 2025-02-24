@@ -79,13 +79,13 @@ This section lists the labels we use to help us track and manage issues and pull
 ## Getting Help
 
 - Join [Discord](https://discord.gg/ai16z)
-- Check [FAQ](docs/community/faq.md)
-- Create GitHub issues
+- Check [FAQ](docs/docs/faq.md)
+- Create [GitHub issues](https://github.com/elizaOS/eliza/issues)
 
 ## Additional Resources
 
-- [Local Development Guide](docs/guides/local-development.md)
-- [Configuration Guide](docs/guides/configuration.md)
+- [Local Development Guide](docs/docs/guides/local-development.md)
+- [Configuration Guide](docs/docs/guides/configuration.md)
 - [API Documentation](docs/api)
 
 ## Contributor Guide
