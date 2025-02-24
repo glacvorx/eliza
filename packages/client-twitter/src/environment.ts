@@ -77,6 +77,8 @@ export const twitterEnvSchema = z.object({
     ACTION_TIMELINE_TYPE: z
         .nativeEnum(ActionTimelineType)
         .default(ActionTimelineType.ForYou),
+    TWITTER_ACTION_DELAY_MIN: z.number().int(),
+    TWITTER_ACTION_DELAY_MAX: z.number().int(),
 });
 
 export type TwitterConfig = z.infer<typeof twitterEnvSchema>;
@@ -239,6 +241,18 @@ export async function validateTwitterConfig(
             ACTION_TIMELINE_TYPE:
                 runtime.getSetting("ACTION_TIMELINE_TYPE") ||
                 process.env.ACTION_TIMELINE_TYPE,
+
+            TWITTER_ACTION_DELAY_MIN: safeParseInt(
+                runtime.getSetting("TWITTER_ACTION_DELAY_MIN") ||
+                    process.env.TWITTER_ACTION_DELAY_MIN,
+                20
+            ),
+
+            TWITTER_ACTION_DELAY_MAX: safeParseInt(
+                runtime.getSetting("TWITTER_ACTION_DELAY_MAX") ||
+                    process.env.TWITTER_ACTION_DELAY_MAX,
+                60
+            ),
         };
 
         return twitterEnvSchema.parse(twitterConfig);

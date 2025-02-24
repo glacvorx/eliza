@@ -771,9 +771,11 @@ export class TwitterPostClient {
 
             for (const tweet of timelines) {
                 try {
-                    // Add random delay before processing each tweet
-                    const delaySeconds = this.getRandomDelay();
-                    elizaLogger.log(`Adding random delay of ${delaySeconds} seconds before processing next tweet`);
+                    // Add delay before processing each tweet action
+                    const delayMin = this.client.twitterConfig.TWITTER_ACTION_DELAY_MIN;
+                    const delayMax = this.client.twitterConfig.TWITTER_ACTION_DELAY_MAX;
+                    const delaySeconds = this.getRandomDelay(delayMin, delayMax);
+                    elizaLogger.log(`Adding delay of ${delaySeconds} seconds before processing next tweet`);
                     await new Promise(resolve => setTimeout(resolve, delaySeconds * 1000));
 
                     // Skip if we've already processed this tweet
@@ -1542,9 +1544,7 @@ export class TwitterPostClient {
         }
     }
 
-    private getRandomDelay(): number {
-        const minDelay = 10; // Minimum delay in seconds
-        const maxDelay = 30; // Maximum delay in seconds
-        return Math.floor(Math.random() * (maxDelay - minDelay + 1)) + minDelay;
+    private getRandomDelay(min: number, max: number): number {
+        return Math.floor(Math.random() * (max - min + 1)) + min;
     }
 }
