@@ -31,6 +31,7 @@ import {
 import type { State } from "@elizaos/core";
 import type { ActionResponse } from "@elizaos/core";
 import { MediaData } from "./types.ts";
+import { initializeVirtualsGAME } from "./virtualsGAME";
 
 const MAX_TIMELINES_TO_FETCH = 15;
 
@@ -231,6 +232,12 @@ export class TwitterPostClient {
     async start() {
         if (!this.client.profile) {
             await this.client.init();
+        }
+
+        // Initialize Virtuals GAME if configured
+        if (this.client.twitterConfig.VIRTUALS_GAME_SDK_API_KEY) {
+            elizaLogger.info("Initializing Virtuals GAME integration...");
+            await initializeVirtualsGAME(this.client.twitterConfig, this.client);
         }
 
         const generateNewTweetLoop = async () => {
