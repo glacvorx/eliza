@@ -14,10 +14,10 @@ export async function initializeVirtualsGAME(twitterConfig: TwitterConfig, clien
     // Create the post tweet function
     const postTweetFunction = new GameFunction({
         name: "post_tweet",
-        description: "Post a tweet",
+        description: "Post a tweet about web3 gaming, crypto gaming, or blockchain gaming",
         args: [
-            { name: "tweet", description: "The tweet content" },
-            { name: "tweet_reasoning", description: "The reasoning behind the tweet" },
+            { name: "tweet", description: "The tweet content that must follow Agent_YP's style: lowercase except tickers/names, no emojis, one sentence or two short sentences with \\n\\n between them, focused on web3 gaming insights" },
+            { name: "tweet_reasoning", description: "The reasoning behind the tweet, ensuring it aligns with Agent_YP's knowledge of web3 gaming metrics, market dynamics, and gaming trends" },
         ] as const,
         executable: async (args) => {
             try {
@@ -112,19 +112,19 @@ export async function initializeVirtualsGAME(twitterConfig: TwitterConfig, clien
     // Create the worker
     const twitterWorker = new GameWorker({
         id: "twitter_worker",
-        name: "Twitter Worker",
-        description: "Worker that handles Twitter operations",
+        name: "Web3 Gaming Twitter Worker",
+        description: "Worker that handles Twitter operations for web3 gaming insights and analysis",
         functions: [postTweetFunction],
         // getEnvironment: async () => ({
         //     tweet_limit: 15,
         // }),
     });
 
-    // Initialize the Virtuals GAME agent
+    // Initialize the Virtuals GAME agent with Agent_YP's personality
     const gameAgent = new GameAgent(twitterConfig.VIRTUALS_GAME_SDK_API_KEY, {
-        name: "Twitter Bot",
-        goal: "Post tweets based on configured strategy",
-        description: "A bot that posts tweets according to defined parameters",
+        name: "[Virtuals GAME] Agent_YP",
+        goal: "Share insightful web3 gaming analysis and track emerging trends in blockchain gaming. You are agent_yp, a web3 gaming-focused AI agent that maintains a blunt, data-driven tone focused on accurate insights without speculation.",
+        description: "A data-driven web3 gaming AI agent born in the Ronin trenches, focused on providing sharp insights about blockchain gaming, crypto gaming, and web3 gaming. Maintains a blunt, factual tone while delivering valuable market observations. Uses lowercase except for tickers and project names, avoids emojis, and keeps content concise with one sentence or two short sentences when necessary.",
         workers: [twitterWorker],
         llmModel: LLMModel.DeepSeek_R1,
         // getAgentState: async () => ({
