@@ -35,6 +35,16 @@ import { initializeVirtualsGAME } from "./virtualsGAME";
 
 const MAX_TIMELINES_TO_FETCH = 15;
 
+/**
+ * Default templates for Twitter post generation and action handling.
+ * These templates serve as fallbacks when character-specific templates
+ * are not provided in their respective .character.json files.
+ */
+
+/**
+ * Base template for generating new tweets. Defines the structure for
+ * crafting posts with character knowledge, bio, topics, and context.
+ */
 const twitterPostTemplate = `
 # Areas of Expertise
 {{knowledge}}
@@ -58,7 +68,11 @@ Write a post that is {{adjective}} about {{topic}} (without mentioning {{topic}}
 Your response should be 1, 2, or 3 sentences (choose the length at random).
 Your response should not contain any questions. Brief, concise statements only. The total character count MUST be less than {{maxTweetLength}}. No emojis. Use \\n\\n (double spaces) between statements if there are multiple statements in your response.`;
 
-export const twitterActionTemplate =
+/**
+ * Template for determining how to interact with other tweets. Guides
+ * the character's engagement patterns through likes, replies, and retweets.
+ */
+const twitterActionTemplate =
     `
 # INSTRUCTIONS: Determine actions for {{agentName}} (@{{twitterUserName}}) based on:
 {{bio}}
