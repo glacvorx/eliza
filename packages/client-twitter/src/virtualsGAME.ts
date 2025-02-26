@@ -19,7 +19,7 @@ export async function initializeVirtualsGAME(twitterConfig: TwitterConfig, clien
             { name: "tweet", description: "The tweet content" },
             { name: "tweet_reasoning", description: "The reasoning behind the tweet" },
         ] as const,
-        executable: async (args, logger) => {
+        executable: async (args) => {
             try {
                 // Check for dry run mode
                 if (twitterConfig.TWITTER_DRY_RUN) {
