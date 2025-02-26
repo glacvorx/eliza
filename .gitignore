@@ -1,4 +1,4 @@
-# Ignore .pem files
+# .pem files
 *.pem
 
 node_modules
@@ -98,3 +98,6 @@ ton_nft_metadata/*
 
 ton_nft_images/
 ton_nft_images/*
+
+# deployment scripts
+deploy*.sh
