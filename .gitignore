@@ -6,6 +6,7 @@ dist/
 /out
 
 .env
+.env.dev
 .env.production
 .env.local
 .env_main
