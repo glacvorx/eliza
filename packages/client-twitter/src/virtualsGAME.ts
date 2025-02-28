@@ -16,15 +16,25 @@ export async function initializeVirtualsGAME(twitterConfig: TwitterConfig, clien
         name: "post_tweet",
         description: "Post a tweet about web3 gaming, crypto gaming, or blockchain gaming",
         args: [
-            { name: "tweet", description: "The tweet content that must follow Agent_YP's style: lowercase except tickers/names, no emojis, one sentence or two short sentences with \\n\\n between them, focused on web3 gaming insights" },
+            { name: "tweet", description: "The tweet content that must follow Agent_YP's style: lowercase except tickers/names, no emojis, one sentence or two short sentences, focused on web3 gaming insights" },
             { name: "tweet_reasoning", description: "The reasoning behind the tweet, ensuring it aligns with Agent_YP's knowledge of web3 gaming metrics, market dynamics, and gaming trends" },
         ] as const,
         executable: async (args) => {
             try {
+                // Sanitize the tweet content before posting
+                const rawTweetContent = args.tweet;
+                let tweetTextForPosting = rawTweetContent.trim();
+
+                // Final cleaning
+                const removeQuotes = (str: string) => str.replace(/^['"](.*)['"]$/, "$1");
+                const fixNewLines = (str: string) => str.replaceAll(/\\n/g, "\n\n"); // ensures double spaces
+
+                // Apply final cleaning
+                tweetTextForPosting = removeQuotes(fixNewLines(tweetTextForPosting));
+
                 // Check for dry run mode
                 if (twitterConfig.TWITTER_DRY_RUN) {
-                    elizaLogger.info(`[Virtuals GAME] Dry run: Would have posted tweet: ${args.tweet}`);
-                    elizaLogger.info(`[Virtuals GAME] Dry run: Tweet content: ${args.tweet}`);
+                    elizaLogger.info(`[Virtuals GAME] Dry run: Would have posted tweet: ${tweetTextForPosting}`);
                     elizaLogger.info(`[Virtuals GAME] Dry run: Reasoning: ${args.tweet_reasoning}`);
 
                     return new ExecutableGameFunctionResponse(
@@ -40,7 +50,7 @@ export async function initializeVirtualsGAME(twitterConfig: TwitterConfig, clien
 
                 while (attempts < maxAttempts) {
                     try {
-                        const result = await client.twitterClient.sendTweet(args.tweet);
+                        const result = await client.twitterClient.sendTweet(tweetTextForPosting);
                         const body = await result.json();
 
                         // Check for Twitter API errors
@@ -115,22 +125,15 @@ export async function initializeVirtualsGAME(twitterConfig: TwitterConfig, clien
         name: "Web3 Gaming Twitter Worker",
         description: "Worker that handles Twitter operations for web3 gaming insights and analysis",
         functions: [postTweetFunction],
-        // getEnvironment: async () => ({
-        //     tweet_limit: 15,
-        // }),
     });
 
     // Initialize the Virtuals GAME agent with Agent_YP's personality
     const gameAgent = new GameAgent(twitterConfig.VIRTUALS_GAME_SDK_API_KEY, {
         name: "[Virtuals GAME] Agent_YP",
         goal: "Share insightful web3 gaming analysis and track emerging trends in blockchain gaming. You are agent_yp, a web3 gaming-focused AI agent that maintains a blunt, data-driven tone focused on accurate insights without speculation.",
-        description: "A data-driven web3 gaming AI agent born in the Ronin trenches, focused on providing sharp insights about blockchain gaming, crypto gaming, and web3 gaming. Maintains a blunt, factual tone while delivering valuable market observations. Uses lowercase except for tickers and project names, avoids emojis, and keeps content concise with one sentence or two short sentences when necessary.",
+        description: "A data-driven web3 gaming AI agent, focused on providing sharp insights about blockchain gaming, crypto gaming, and web3 gaming. Maintains a blunt, factual tone while delivering valuable market observations. Uses lowercase except for tickers and project names, avoids emojis, and keeps content concise with one sentence or two short sentences when necessary. Agent should not stop running.",
         workers: [twitterWorker],
         llmModel: LLMModel.DeepSeek_R1,
-        // getAgentState: async () => ({
-        //     username: twitterConfig.TWITTER_USERNAME,
-        //     tweet_count: 0,
-        // }),
     });
 
     // Initialize and run the agent
