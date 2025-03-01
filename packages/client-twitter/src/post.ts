@@ -31,7 +31,7 @@ import {
 import type { State } from "@elizaos/core";
 import type { ActionResponse } from "@elizaos/core";
 import { MediaData } from "./types.ts";
-import { initializeVirtualsGAME } from "./virtualsGAME";
+import { runVirtualsGAME } from "./virtualsGAME";
 
 const MAX_TIMELINES_TO_FETCH = 15;
 
@@ -250,9 +250,35 @@ export class TwitterPostClient {
 
         // Initialize Virtuals GAME if configured
         if (this.client.twitterConfig.VIRTUALS_GAME_SDK_API_KEY) {
-            elizaLogger.info("Initializing Virtuals GAME integration...");
-            await initializeVirtualsGAME(this.client.twitterConfig, this.client);
+            const runVirtualsGAMELoop = async () => {
+                let result;
+                do {
+                    result = await runVirtualsGAME(this.client.twitterConfig, this.client);
+                    if (!result.success) {
+                        elizaLogger.error(`Failed to post tweet: ${result.error}`);
+                        // Wait 1 minute before retrying
+                        await new Promise(r => setTimeout(r, 60 * 1000));
+                    }
+                } while (!result.success);
+
+                // Schedule next run after the configured interval
+                elizaLogger.info(`Tweet posted successfully. Scheduling next run in ${this.client.twitterConfig.VIRTUALS_GAME_POST_INTERVAL} minutes`);
+                setTimeout(() => {
+                    runVirtualsGAMELoop();
+                }, this.client.twitterConfig.VIRTUALS_GAME_POST_INTERVAL * 60 * 1000);
+            };
+
+            // Start the initial loop
+            runVirtualsGAMELoop().catch(error => {
+                elizaLogger.error(`Error in Virtuals GAME loop: ${error}`);
+            });
         }
+
+        // Initialize Virtuals GAME if configured
+        // if (this.client.twitterConfig.VIRTUALS_GAME_SDK_API_KEY) {
+        //     elizaLogger.info("Initializing Virtuals GAME integration...");
+        //     await initializeVirtualsGAME(this.client.twitterConfig, this.client);
+        // }
 
         const generateNewTweetLoop = async () => {
             const lastPost = await this.runtime.cacheManager.get<{
