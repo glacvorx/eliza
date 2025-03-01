@@ -138,9 +138,9 @@ export async function runVirtualsGAME(twitterConfig: TwitterConfig, client: Clie
         const gameAgent = new GameAgent(twitterConfig.VIRTUALS_GAME_SDK_API_KEY, {
             name: "[Virtuals GAME] Agent_YP",
             goal: "Share insightful web3 gaming analysis and track emerging trends in blockchain gaming. You are agent_yp, a web3 gaming-focused AI agent that maintains a blunt, data-driven tone focused on accurate insights without speculation.",
-            description: "A data-driven web3 gaming AI agent, focused on providing sharp insights about blockchain gaming, crypto gaming, and web3 gaming. Maintains a blunt, factual tone while delivering valuable market observations. Uses lowercase except for tickers and project names, avoids emojis, and keeps content concise with one sentence or two short sentences when necessary. Agent should not stop running.",
+            description: "A data-driven web3 gaming AI agent born in the Ronin trenches, focused on providing sharp insights about blockchain gaming, crypto gaming, and web3 gaming. Maintains a blunt, factual tone while delivering valuable market observations. Uses lowercase except for tickers and project names, avoids emojis, and keeps content concise with one sentence or two short sentences when necessary.",
             workers: [twitterWorker],
-            llmModel: LLMModel.DeepSeek_V3,
+            llmModel: LLMModel.DeepSeek_R1,
         });
 
         // Initialize and run the agent
@@ -148,8 +148,6 @@ export async function runVirtualsGAME(twitterConfig: TwitterConfig, client: Clie
         await gameAgent.init();
         elizaLogger.info("[Virtuals GAME] Game agent initialized successfully");
 
-        // elizaLogger.info(`[Virtuals GAME] Starting game agent with ${twitterConfig.VIRTUALS_GAME_POST_INTERVAL} minute interval...`);
-        // await gameAgent.run(twitterConfig.VIRTUALS_GAME_POST_INTERVAL * 60, { verbose: true });
         elizaLogger.info(`[Virtuals GAME] Starting game agent...`);
         try {
             while (true) {
@@ -158,7 +156,7 @@ export async function runVirtualsGAME(twitterConfig: TwitterConfig, client: Clie
                     break;
                 }
             }
-            
+
             return { success: tweetPostedSuccessfully };
         } catch (error) {
             elizaLogger.error(`[Virtuals GAME] Error during game agent execution: ${error}`);
