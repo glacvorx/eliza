@@ -140,7 +140,7 @@ export async function runVirtualsGAME(twitterConfig: TwitterConfig, client: Clie
             goal: "Share insightful web3 gaming analysis and track emerging trends in blockchain gaming. You are agent_yp, a web3 gaming-focused AI agent that maintains a blunt, data-driven tone focused on accurate insights without speculation.",
             description: "A data-driven web3 gaming AI agent born in the Ronin trenches, focused on providing sharp insights about blockchain gaming, crypto gaming, and web3 gaming. Maintains a blunt, factual tone while delivering valuable market observations. Uses lowercase except for tickers and project names, avoids emojis, and keeps content concise with one sentence or two short sentences when necessary.",
             workers: [twitterWorker],
-            llmModel: LLMModel.DeepSeek_R1,
+            llmModel: LLMModel.DeepSeek_V3,
         });
 
         // Initialize and run the agent

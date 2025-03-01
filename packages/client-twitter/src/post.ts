@@ -255,14 +255,14 @@ export class TwitterPostClient {
                 do {
                     result = await runVirtualsGAME(this.client.twitterConfig, this.client);
                     if (!result.success) {
-                        elizaLogger.error(`Failed to post tweet: ${result.error}`);
+                        elizaLogger.error("[Virtuals GAME] Tweet generation unsuccessful, this SDK sucks. Retrying in 1 minute.");
                         // Wait 1 minute before retrying
                         await new Promise(r => setTimeout(r, 60 * 1000));
                     }
                 } while (!result.success);
 
                 // Schedule next run after the configured interval
-                elizaLogger.info(`Tweet posted successfully. Scheduling next run in ${this.client.twitterConfig.VIRTUALS_GAME_POST_INTERVAL} minutes`);
+                elizaLogger.info(`[Virtuals GAME] Tweet posted successfully. Scheduling next run in ${this.client.twitterConfig.VIRTUALS_GAME_POST_INTERVAL} minutes`);
                 setTimeout(() => {
                     runVirtualsGAMELoop();
                 }, this.client.twitterConfig.VIRTUALS_GAME_POST_INTERVAL * 60 * 1000);
