@@ -267,7 +267,10 @@ export async function sendTweet(
         }
 
         // Wait a bit between tweets to avoid rate limiting issues
-        await wait(1000, 2000);
+        const delayMin = client.twitterConfig.TWITTER_ACTION_DELAY_MIN;
+        const delayMax = client.twitterConfig.TWITTER_ACTION_DELAY_MAX;
+        elizaLogger.info(`Waiting ${delayMin} to ${delayMax} seconds between tweets.`);
+        await wait(delayMin * 1000, delayMax * 1000);
     }
 
     const memories: Memory[] = sentTweets.map((tweet) => ({

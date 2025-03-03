@@ -18,7 +18,7 @@ import type { ClientBase } from "./base.ts";
 import { postActionResponseFooter } from "@elizaos/core";
 import { generateTweetActions } from "@elizaos/core";
 import { type IImageDescriptionService, ServiceType } from "@elizaos/core";
-import { buildConversationThread, fetchMediaData, wait } from "./utils.ts";
+import { buildConversationThread, fetchMediaData } from "./utils.ts";
 import { twitterMessageHandlerTemplate } from "./interactions.ts";
 import { DEFAULT_MAX_TWEET_LENGTH } from "./environment.ts";
 import {
@@ -247,7 +247,6 @@ export class TwitterPostClient {
         if (!this.client.profile) {
             await this.client.init();
         }
-
 
         // Initialize Virtuals GAME if configured
         if (this.client.twitterConfig.VIRTUALS_GAME_SDK_API_KEY && await this.client.twitterClient.isLoggedIn()) {
@@ -1149,8 +1148,6 @@ export class TwitterPostClient {
             } else {
                 elizaLogger.error("Tweet reply creation failed");
             }
-
-            await wait(this.client.twitterConfig.TWITTER_ACTION_DELAY_MIN * 1000, this.client.twitterConfig.TWITTER_ACTION_DELAY_MAX * 1000);
         } catch (error) {
             elizaLogger.error("Error in handleTextOnlyReply:", error);
         }
