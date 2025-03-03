@@ -152,7 +152,7 @@ export async function runVirtualsGAME(twitterConfig: TwitterConfig, client: Clie
         try {
             while (true) {
                 const action = await gameAgent.step({ verbose: true });
-                if (action === "wait" || action === "unknown") {
+                if (action === "wait" || action === "unknown" || tweetPostedSuccessfully) {
                     break;
                 }
             }
