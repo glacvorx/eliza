@@ -576,7 +576,8 @@ export class TwitterInteractionClient {
                         `twitter/tweet_generation_${tweet.id}.txt`,
                         responseInfo
                     );
-                    await wait();
+
+                    await wait(this.client.twitterConfig.TWITTER_ACTION_DELAY_MIN * 1000, this.client.twitterConfig.TWITTER_ACTION_DELAY_MAX * 1000);
                 } catch (error) {
                     elizaLogger.error(`Error sending response tweet: ${error}`);
                 }
