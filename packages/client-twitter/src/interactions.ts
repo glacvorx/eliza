@@ -20,6 +20,14 @@ import {
 import type { ClientBase } from "./base";
 import { buildConversationThread, sendTweet, wait } from "./utils.ts";
 
+/**
+ * Template used to generate the actual response content for both replies and mentions.
+ * This template is used AFTER twitterShouldRespondTemplate decides to respond.
+ * The same template handles both replies and mentions - the difference comes from
+ * the conversation context passed in:
+ * - For replies: formattedConversation will contain the full conversation thread
+ * - For mentions: formattedConversation might only contain the mention tweet
+ */
 export const twitterMessageHandlerTemplate =
     `
 # Areas of Expertise
@@ -63,6 +71,20 @@ Here is the descriptions of images in the Current post.
 {{imageDescriptions}}
 ` + messageCompletionFooter;
 
+/**
+ * Template used to decide WHETHER to respond to any Twitter interaction (both replies and mentions).
+ * This is called BEFORE twitterMessageHandlerTemplate and returns either:
+ * - RESPOND: Generate a response using twitterMessageHandlerTemplate
+ * - IGNORE: Skip this interaction
+ * - STOP: Stop participating in this conversation
+ * 
+ * The same template is used for both replies and mentions, with the decision based on:
+ * - Priority users (always respond)
+ * - Message relevance
+ * - Conversation context
+ * - Direct addressing
+ * @param targetUsersStr Comma-separated list of priority Twitter usernames to always respond to
+ */
 export const twitterShouldRespondTemplate = (targetUsersStr: string) =>
     `# INSTRUCTIONS: Determine if {{agentName}} (@{{twitterUserName}}) should respond to the message and participate in the conversation. Do not comment. Just respond with "true" or "false".
 
