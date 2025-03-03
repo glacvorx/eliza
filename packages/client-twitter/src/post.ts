@@ -267,20 +267,16 @@ export class TwitterPostClient {
                 // Schedule next run after the configured interval
                 elizaLogger.info(`[Virtuals GAME] Tweet posted successfully. Scheduling next run in ${this.client.twitterConfig.VIRTUALS_GAME_POST_INTERVAL} minutes.`);
 
-                // Schedule the next run and return
-                return new Promise<void>((resolve) => {
-                    setTimeout(() => {
-                        runVirtualsGAMELoop().catch(error => {
-                            elizaLogger.error(`[Virtuals GAME] Error in Virtuals GAME loop: ${error}`);
-                        });
-                        resolve();
-                    }, this.client.twitterConfig.VIRTUALS_GAME_POST_INTERVAL * 60 * 1000);
-                });
+                // Wait for the configured interval before running again
+                await new Promise(r => setTimeout(r, this.client.twitterConfig.VIRTUALS_GAME_POST_INTERVAL * 60 * 1000));
+
+                // Run the next iteration
+                return runVirtualsGAMELoop();
             };
 
             // Start the initial loop
             runVirtualsGAMELoop().catch(error => {
-                elizaLogger.error(`Error in Virtuals GAME loop: ${error}`);
+                elizaLogger.error(`[Virtuals GAME] Error in Virtuals GAME loop: ${error}`);
             });
         }
 
