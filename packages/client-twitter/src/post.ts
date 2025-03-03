@@ -816,13 +816,6 @@ export class TwitterPostClient {
 
             for (const tweet of timelines) {
                 try {
-                    // Add delay before processing each tweet action
-                    const delayMin = this.client.twitterConfig.TWITTER_ACTION_DELAY_MIN;
-                    const delayMax = this.client.twitterConfig.TWITTER_ACTION_DELAY_MAX;
-                    const delaySeconds = this.getRandomDelay(delayMin, delayMax);
-                    elizaLogger.log(`Adding delay of ${delaySeconds} seconds before processing next tweet`);
-                    await new Promise(resolve => setTimeout(resolve, delaySeconds * 1000));
-
                     // Skip if we've already processed this tweet
                     const memory =
                         await this.runtime.messageManager.getMemoryById(
@@ -949,6 +942,8 @@ export class TwitterPostClient {
     > {
         const results = [];
         for (const timeline of timelines) {
+            await this.randomDelay();
+
             const { actionResponse, tweetState, roomId, tweet } = timeline;
             try {
                 const executedActions: string[] = [];
@@ -1416,7 +1411,12 @@ export class TwitterPostClient {
         }
     }
 
-    private getRandomDelay(min: number, max: number): number {
-        return Math.floor(Math.random() * (max - min + 1)) + min;
+    private async randomDelay(): Promise<void> {
+        const delayMin = this.client.twitterConfig.TWITTER_ACTION_DELAY_MIN;
+        const delayMax = this.client.twitterConfig.TWITTER_ACTION_DELAY_MAX;
+        const randomDelay = Math.floor(Math.random() * (delayMax - delayMin + 1)) + delayMin;
+        elizaLogger.info(`Adding delay of ${randomDelay} seconds before processing next tweet`);
+
+        return await new Promise(r => setTimeout(r, randomDelay * 1000));
     }
 }
