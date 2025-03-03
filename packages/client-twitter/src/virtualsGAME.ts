@@ -150,11 +150,15 @@ export async function runVirtualsGAME(twitterConfig: TwitterConfig, client: Clie
 
         elizaLogger.info(`[Virtuals GAME] Starting game agent...`);
         try {
-            while (true) {
+            while (!tweetPostedSuccessfully) {
                 const action = await gameAgent.step({ verbose: true });
-                if (action === "wait" || action === "unknown" || tweetPostedSuccessfully) {
+                if (action === "wait" || action === "unknown") {
                     break;
                 }
+            }
+
+            if (tweetPostedSuccessfully) {
+                elizaLogger.info("[Virtuals GAME] Tweet posted successfully, ending game agent execution.");
             }
 
             return { success: tweetPostedSuccessfully };
