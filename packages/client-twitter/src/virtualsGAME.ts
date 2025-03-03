@@ -152,6 +152,7 @@ export async function runVirtualsGAME(twitterConfig: TwitterConfig, client: Clie
         try {
             while (!tweetPostedSuccessfully) {
                 const action = await gameAgent.step({ verbose: true });
+                elizaLogger.Debug(`[Virtuals GAME] Agent step action: ${action}`);
                 if (action === "wait" || action === "unknown") {
                     break;
                 }
