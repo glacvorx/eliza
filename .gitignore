@@ -10,6 +10,7 @@ dist/
 .env.production
 .env.local
 .env_main
+.env.prod
 concatenated-output.ts
 embedding-cache.json
 packages/plugin-buttplug/intiface-engine
