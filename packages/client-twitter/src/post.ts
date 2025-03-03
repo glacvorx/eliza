@@ -249,7 +249,7 @@ export class TwitterPostClient {
         }
 
         // Initialize Virtuals GAME if configured
-        if (this.client.twitterConfig.VIRTUALS_GAME_SDK_API_KEY) {
+        if (this.client.twitterConfig.VIRTUALS_GAME_SDK_API_KEY && await this.client.twitterClient.isLoggedIn()) {
             // Add a 5 minute delay for GAME SDK start up so posts get spaced out with Eliza start up tweets
             await new Promise(r => setTimeout(r, 5 * 60 * 1000));
 
