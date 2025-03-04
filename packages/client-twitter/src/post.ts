@@ -120,7 +120,7 @@ export class TwitterPostClient {
     private approvalRequired = false;
     private discordApprovalChannelId: string;
     private approvalCheckInterval: number;
-    private lastPostCheckTime = Date.now();
+    private nextScheduledPostTime = Date.now();
 
     constructor(client: ClientBase, runtime: IAgentRuntime) {
         this.client = client;
@@ -287,24 +287,24 @@ export class TwitterPostClient {
             const lastPostTimestamp = lastPost?.timestamp ?? 0;
             const minMinutes = this.client.twitterConfig.POST_INTERVAL_MIN;
             const maxMinutes = this.client.twitterConfig.POST_INTERVAL_MAX;
-            const randomMinutes =
-                Math.floor(Math.random() * (maxMinutes - minMinutes + 1)) +
-                minMinutes;
-            const delay = randomMinutes * 60 * 1000;
             const now = Date.now();
 
-            // Check if enough time has passed since last check AND if we're past the minimum interval since last post
-            if (now > this.lastPostCheckTime + delay && now > lastPostTimestamp + (minMinutes * 60 * 1000)) {
-                await this.generateNewTweet();
+            // If we haven't set the next scheduled post time or we've passed it
+            if (now >= this.nextScheduledPostTime) {
+                // Check if minimum time has passed since last post
+                if (now >= lastPostTimestamp + (minMinutes * 60 * 1000)) {
+                    await this.generateNewTweet();
+                    
+                    // Schedule next post with random interval
+                    const randomMinutes = Math.floor(Math.random() * (maxMinutes - minMinutes + 1)) + minMinutes;
+                    this.nextScheduledPostTime = now + (randomMinutes * 60 * 1000);
+                    elizaLogger.log(`Next tweet scheduled in ${randomMinutes} minutes`);
+                }
             }
 
-            this.lastPostCheckTime = now;
-
             setTimeout(() => {
-                generateNewTweetLoop(); // Set up next iteration
-            }, delay);
-
-            elizaLogger.log(`Next tweet check scheduled in ${randomMinutes} minutes`);
+                generateNewTweetLoop();
+            }, 60 * 1000);
         };
 
         const processActionsLoop = async () => {
