@@ -120,7 +120,7 @@ export class TwitterPostClient {
     private approvalRequired = false;
     private discordApprovalChannelId: string;
     private approvalCheckInterval: number;
-    private nextScheduledPostTime = Date.now();
+    private nextScheduledPostTime = 0; // Initialize to 0 to ensure first check triggers a post if needed
 
     constructor(client: ClientBase, runtime: IAgentRuntime) {
         this.client = client;
@@ -290,15 +290,18 @@ export class TwitterPostClient {
             const now = Date.now();
 
             // If we haven't set the next scheduled post time or we've passed it
-            if (now >= this.nextScheduledPostTime) {
+            if (this.nextScheduledPostTime === 0 || now >= this.nextScheduledPostTime) {
                 // Check if minimum time has passed since last post
                 if (now >= lastPostTimestamp + (minMinutes * 60 * 1000)) {
+                    elizaLogger.log("Attempting to generate new tweet...");
                     await this.generateNewTweet();
                     
                     // Schedule next post with random interval
                     const randomMinutes = Math.floor(Math.random() * (maxMinutes - minMinutes + 1)) + minMinutes;
                     this.nextScheduledPostTime = now + (randomMinutes * 60 * 1000);
-                    elizaLogger.log(`Next tweet scheduled in ${randomMinutes} minutes`);
+                    elizaLogger.log(`Next tweet scheduled in ${randomMinutes} minutes (at ${new Date(this.nextScheduledPostTime).toISOString()})`);
+                } else {
+                    elizaLogger.log(`Skipping tweet generation - minimum interval not met. Last post was ${Math.floor((now - lastPostTimestamp) / (60 * 1000))} minutes ago`);
                 }
             }
 
