@@ -562,8 +562,17 @@ export class TwitterPostClient {
             );
 
             // Fetch cached timeline for context
-            const cachedTimeline = await this.client.getCachedTimeline();
+            let cachedTimeline = await this.client.getCachedTimeline();
             let timelineContext = "";
+
+            // If no cached timeline, try to fetch and cache new timeline
+            if (!cachedTimeline || cachedTimeline.length === 0) {
+                elizaLogger.log("No cached timeline found, fetching new timeline...");
+                const newTimeline = await this.client.fetchHomeTimeline(50);
+                await this.client.cacheTimeline(newTimeline);
+                cachedTimeline = newTimeline;
+            }
+
             if (cachedTimeline && cachedTimeline.length > 0) {
                 // Format the last 5 tweets from the timeline for context with clear separators
                 const recentTweets = cachedTimeline.slice(0, 5);
@@ -581,7 +590,7 @@ export class TwitterPostClient {
                     }))
                 );
             } else {
-                elizaLogger.debug("No cached timeline available for context generation");
+                elizaLogger.debug("No timeline available for context generation after attempted fetch");
             }
 
             const topics = this.runtime.character.topics.join(", ");
