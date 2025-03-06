@@ -278,6 +278,7 @@ export class TwitterPostClient {
             });
         }
 
+
         const generateNewTweetLoop = async () => {
             const lastPost = await this.runtime.cacheManager.get<{
                 timestamp: number;
