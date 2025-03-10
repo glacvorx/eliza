@@ -19,21 +19,53 @@ Tweet: {{currentPost}}
 
 Guidelines:
 - You've ALREADY decided to engage with this tweet
-- Only fetch CARV data when it would MEANINGFULLY enhance your reply
-- Consider:
-  - Tweet mentions specific blockchain addresses, transactions, or tokens
-  - Tweet asks about on-chain activity, wallet balances, or transaction history
-  - Tweet discusses blockchain trends where on-chain data analysis would provide context
-  - Tweet references a specific Twitter user whose on-chain activities could be relevant
-  - Tweet mentions Ethereum, Bitcoin, Solana, or Base blockchain data that could be queried
-  - Skip fetching for general crypto discussions without specific on-chain data needs
-  - Skip for non-technical topics where blockchain data adds little value
+- CARV data significantly enhances replies related to blockchain, crypto, Web3, and on-chain activities
+- ALWAYS fetch CARV data when the tweet relates to ANY of these categories:
+
+1. TOKEN & MARKET DATA (ALWAYS FETCH if mentioned):
+   - ANY mention of known token names (with or without $ prefix like ETH, SOL, WOOF, BTC)
+   - Token keywords: "holders", "supply", "price", "market cap", "volume", "transfers", "mint"
+   - Questions including "how many", "price of", "total supply", "market cap" with token names
+   - Market trends, trading volume, liquidity, or price movements
+   - Whale activity, large transactions, or market sentiment
+
+2. WALLET & IDENTITY VERIFICATION:
+   - ANY mention of wallets, addresses, or blockchain identity
+   - Requests to verify someone's on-chain activity or holdings
+   - Questions about transaction history or wallet reputation
+   - Cross-referencing Twitter/Discord identities with on-chain activities
+
+3. BLOCKCHAIN ACTIVITY & GOVERNANCE:
+   - Questions about on-chain events (transactions, airdrops, staking)
+   - DAO governance discussions, proposals, or voting
+   - Treasury management or fund allocation topics
+   - Mentions of gas fees, transaction status, or network activity
+
+4. DEFI & TRADING:
+   - Questions about yields, staking rewards, or farming strategies
+   - Cross-chain comparisons or bridging discussions
+   - Trading strategies, portfolio management, or DeFi protocols
+   - Liquidity pools, swaps, or arbitrage opportunities
+
+5. GAMING & NFTs:
+   - Blockchain gaming discussions or in-game assets
+   - NFT valuation, trading, or ownership verification
+   - Game economy, player progression, or asset recommendations
+
+6. ECOSYSTEM & MULTI-CHAIN DATA:
+   - Discussions comparing multiple blockchains or L2s (Ethereum, Arbitrum, Base, Solana, etc.)
+   - Questions about ecosystem growth or adoption metrics
+   - Cross-chain data or multi-network statistics
+   - Network health, validators, or infrastructure metrics
+
+IMPORTANT: Text preprocessing may remove the $ prefix from token names and convert to lowercase.
+Focus on the token name itself (ETH, SOL, WOOF) rather than the $ symbol.
 
 Actions (respond only with tags):
-[FETCH_CARV] - On-chain data would significantly enhance the quality of the reply (8+/10 relevance)
-[SKIP_CARV] - On-chain data would add little value or be irrelevant to this specific reply
+[FETCH_CARV] - On-chain data would enhance the reply (mentions of tokens, crypto terms, or blockchain concepts)
+[SKIP_CARV] - The tweet has NO connection to blockchain, crypto, or on-chain data
 
-# Respond with a single action tag only.
+# Respond with a single action tag only. When in doubt, choose [FETCH_CARV].
 `;
 
 /**
@@ -192,10 +224,7 @@ export async function shouldFetchCARVData(
         // Create the action context using the provided state
         const carvActionContext = composeContext({
             state,
-            template:
-                runtime.character.templates
-                    ?.carvActionTemplate ||
-                carvActionTemplate,
+            template: carvActionTemplate,
         });
 
         // Get CARV action decision using the specialized CARV action generator
@@ -235,7 +264,7 @@ export async function queryLLMSQLAPI(
         const carvApiBaseUrl = 'https://interface.carv.io';
         const endpoint = '/ai-agent-backend/sql_query_by_llm';
 
-        const apiKey = runtime.getSetting('CARV_API_KEY');
+        const apiKey = runtime.getSetting('CARV_DATA_API_KEY');
         if (!apiKey) {
             elizaLogger.error('[CARV] No API key available for CARV API');
             return null;
@@ -323,6 +352,7 @@ export async function analyzeData(
             modelClass: ModelClass.LARGE,
             maxTokens: 1000,
         });
+        elizaLogger.debug("[CARV] Analysis:", analysis);
 
         return analysis || "Could not generate analysis from the on-chain data.";
     } catch (error) {
