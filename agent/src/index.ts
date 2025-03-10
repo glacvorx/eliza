@@ -161,7 +161,7 @@ import { quickIntelPlugin } from "@elizaos/plugin-quick-intel";
 import { trikonPlugin } from "@elizaos/plugin-trikon";
 import arbitragePlugin from "@elizaos/plugin-arbitrage";
 
-import { onchainDataPlugin } from "@elizaos/plugin-d.a.t.a";
+// import { onchainDataPlugin } from "@elizaos/plugin-d.a.t.a";
 
 const __filename = fileURLToPath(import.meta.url); // get the resolved path to the file
 const __dirname = path.dirname(__filename); // get the name of the directory
@@ -1308,7 +1308,7 @@ export async function createAgent(
                 getSecret(character, "DESK_EXCHANGE_NETWORK")
                 ? deskExchangePlugin
                 : null,
-            getSecret(character, "CARV_DATA_API_KEY") ? onchainDataPlugin : null,
+            // getSecret(character, "CARV_DATA_API_KEY") ? onchainDataPlugin : null,
         ]
             .flat()
             .filter(Boolean),
