@@ -228,19 +228,14 @@ export async function queryLLMSQLAPI(
     try {
         elizaLogger.debug(`[CARV] Querying CARV LLM SQL API for tweet: "${tweetContent.substring(0, 100)}..."`);
 
-        // Prepare the request payload with the tweet content
         const payload = {
-            question: `Please analyze this tweet: "${tweetContent}"`
+            question: tweetContent
         };
 
-        // Use fetch to directly call the CARV API endpoint
-        // The exact base URL should be configured properly
         const carvApiBaseUrl = 'https://interface.carv.io';
         const endpoint = '/ai-agent-backend/sql_query_by_llm';
 
-        // Get API key from environment or runtime configuration
         const apiKey = runtime.getSetting('CARV_API_KEY');
-
         if (!apiKey) {
             elizaLogger.error('[CARV] No API key available for CARV API');
             return null;
@@ -250,7 +245,7 @@ export async function queryLLMSQLAPI(
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${apiKey}`
+                'Authorization': apiKey
             },
             body: JSON.stringify(payload)
         });
@@ -369,11 +364,12 @@ export async function processCARVData(
             const tweetText = tweet.text || '';
 
             if (tweetText) {
-                elizaLogger.log(`[CARV] Processing on-chain data for tweet`);
-                
+                elizaLogger.log(`[CARV] Processing on-chain data for tweet from @${tweet.username}`);
+                elizaLogger.log(`[CARV] Tweet content: "${tweetText.substring(0, 50)}..."`);
+
                 // 3. Query the CARV LLM SQL API directly with the tweet content
                 const queryResult = await queryLLMSQLAPI(runtime, tweetText);
-                
+
                 if (queryResult?.data) {
                     // 4. Generate insights based on the data
                     CARVInsights = await analyzeData(
@@ -381,22 +377,38 @@ export async function processCARVData(
                         queryResult.data,
                         tweetText
                     );
-                    
-                    elizaLogger.log('[CARV] Successfully processed and analyzed on-chain data');
+
+                    // Format the insights for Twitter
+                    if (CARVInsights) {
+                        // Add a header to better organize the insights
+                        CARVInsights = `Based on the latest on-chain data:\n${CARVInsights}`;
+
+                        // Log successful retrieval
+                        elizaLogger.log('[CARV] Successfully retrieved on-chain insights', {
+                            tweetId: tweet.id,
+                            username: tweet.username,
+                            insightLength: CARVInsights.length
+                        });
+                    } else {
+                        elizaLogger.warn('[CARV] Analysis returned empty insights');
+                    }
                 } else if (queryResult?.error) {
-                    elizaLogger.error(`[CARV] Error from CARV API: ${queryResult.error.message}`);
+                    elizaLogger.error(`[CARV] API Error: ${queryResult.error.message}`, queryResult.error);
+                    CARVInsights = `Could not generate on-chain analysis: ${queryResult.error.message}`;
                 } else {
-                    elizaLogger.log('[CARV] No data returned from CARV API');
+                    elizaLogger.warn('[CARV] No data returned from CARV API');
+                    CARVInsights = "Could not generate on-chain analysis: No data returned from API.";
                 }
             } else {
-                elizaLogger.log('[CARV] No tweet text available to process');
+                elizaLogger.warn('[CARV] Tweet has no text content');
             }
         } else {
-            elizaLogger.log('[CARV] Skipping CARV data fetch based on decision');
+            elizaLogger.log('[CARV] Decision: Not fetching CARV data for this tweet');
         }
     } catch (error) {
-        elizaLogger.error(`[CARV] Error in processCARVData: ${error}`);
+        elizaLogger.error(`[CARV] Error in CARV data processing: ${error}`, error);
+        CARVInsights = `Error analyzing on-chain data: ${error}`;
     }
-    
+
     return CARVInsights;
 }
