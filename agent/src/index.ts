@@ -1308,7 +1308,7 @@ export async function createAgent(
                 getSecret(character, "DESK_EXCHANGE_NETWORK")
                 ? deskExchangePlugin
                 : null,
-            getSecret(character, "DATA_API_KEY") ? onchainDataPlugin : null,
+            getSecret(character, "CARV_DATA_API_KEY") ? onchainDataPlugin : null,
         ]
             .flat()
             .filter(Boolean),

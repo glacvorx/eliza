@@ -70,10 +70,10 @@ export class TokenInfoProvider {
 
     constructor(runtime: IAgentRuntime) {
         // Get API configuration from runtime settings
-        this.API_URL = runtime.getSetting("DATA_API_KEY");
-        this.AUTH_TOKEN = runtime.getSetting("DATA_AUTH_TOKEN");
+        this.API_URL = runtime.getSetting("CARV_DATA_API_KEY");
+        this.AUTH_TOKEN = runtime.getSetting("CARV_DATA_AUTH_TOKEN");
         this.DATA_PROVIDER_ANALYSIS =
-            runtime.getSetting("DATA_PROVIDER_ANALYSIS") === "true";
+            runtime.getSetting("CARV_DATA_PROVIDER_ANALYSIS") === "true";
     }
 
     public getProviderAnalysis(): boolean {

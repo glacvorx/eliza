@@ -253,7 +253,7 @@ export const fetchTokenInfoAction: Action = {
         }
     },
     validate: async (runtime: IAgentRuntime) => {
-        const apiKey = runtime.getSetting("DATA_API_KEY");
+        const apiKey = runtime.getSetting("CARV_DATA_API_KEY");
         return !!apiKey;
     },
     examples: [
