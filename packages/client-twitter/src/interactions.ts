@@ -61,9 +61,14 @@ Here is the descriptions of images in the Current post.
 Thread of Tweets You Are Replying To:
 {{formattedConversation}}
 
+# On-Chain Data Insights:
+{{CARVInsights}}
+
 # INSTRUCTIONS: Generate a post in the voice, style and perspective of {{agentName}} (@{{twitterUserName}}). You MUST include an action if the current post text includes a prompt that is similar to one of the available actions mentioned here:
 {{actionNames}}
 {{actions}}
+
+If the on-chain data insights above don't contain error messages like "Could not generate analysis" or "Error analyzing", incorporate these blockchain insights into your response - they've been deemed relevant to this conversation. Integrate the insights naturally while maintaining {{agentName}}'s voice and conversational tone.
 
 Here is the current post text again. Remember to include an action if the current post text includes a prompt that asks for one of the available actions mentioned above (does not need to be exact)
 {{currentPost}}
