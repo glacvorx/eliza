@@ -150,18 +150,18 @@ export async function generateCARVAction({
                 modelClass,
             });
             elizaLogger.debug(
-                "Received response from generateText for CARV action:",
+                "[CARV] Received response from generateText for CARV action:",
                 response
             );
             const { actions } = parseCARVActionResponseFromText(response.trim());
             if (actions) {
-                elizaLogger.debug("Parsed CARV action:", actions);
+                elizaLogger.debug("[CARV] Parsed CARV action:", actions);
                 return actions;
             } else {
-                elizaLogger.debug("generateCARVAction no valid response");
+                elizaLogger.debug("[CARV] generateCARVAction no valid response");
             }
         } catch (error) {
-            elizaLogger.error("Error in generateCARVAction:", error);
+            elizaLogger.error("[CARV] Error in generateCARVAction:", error);
             if (
                 error instanceof TypeError &&
                 error.message.includes("queueTextCompletion")
@@ -171,7 +171,7 @@ export async function generateCARVAction({
                 );
             }
         }
-        elizaLogger.log(`Retrying in ${retryDelay}ms...`);
+        elizaLogger.log(`[CARV] Retrying in ${retryDelay}ms...`);
         await new Promise((resolve) => setTimeout(resolve, retryDelay));
         retryDelay *= 2;
     }
@@ -235,12 +235,12 @@ export async function queryLLMSQLAPI(
 
         // Use fetch to directly call the CARV API endpoint
         // The exact base URL should be configured properly
-        const carvApiBaseUrl = 'https://api.carv.io';
+        const carvApiBaseUrl = 'https://interface.carv.io';
         const endpoint = '/ai-agent-backend/sql_query_by_llm';
 
         // Get API key from environment or runtime configuration
-        const apiKey = process.env.CARV_API_KEY || runtime.getSetting('CARV_API_KEY');
-        
+        const apiKey = runtime.getSetting('CARV_API_KEY');
+
         if (!apiKey) {
             elizaLogger.error('[CARV] No API key available for CARV API');
             return null;
