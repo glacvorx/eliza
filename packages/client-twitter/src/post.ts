@@ -963,36 +963,22 @@ export class TwitterPostClient {
             try {
                 const executedActions: string[] = [];
 
-                // Check if tweet mentions our account before allowing reply
-                const isMentioned = tweet.mentions?.some(mention => 
-                    mention.username.toLowerCase() === this.twitterUsername.toLowerCase()
-                );
-
                 // Disable all actions except replies to mentions
                 actionResponse.like = false;
                 actionResponse.retweet = false;
                 actionResponse.quote = false;
-                
-                // Only allow replies to mentions
-                if (actionResponse.reply && !isMentioned) {
-                    actionResponse.reply = false;
-                    elizaLogger.log(`Skipping reply to tweet ${tweet.id} - not mentioned`);
-                }
 
-                // Handle replies to mentions
-                if (actionResponse.reply && isMentioned) {
-                    try {
-                        await this.handleTextOnlyReply(
-                            tweet,
-                            tweetState,
-                            executedActions
-                        );
-                    } catch (error) {
-                        elizaLogger.error(
-                            `Error replying to tweet ${tweet.id}:`,
-                            error
-                        );
-                    }
+                try {
+                    await this.handleTextOnlyReply(
+                        tweet,
+                        tweetState,
+                        executedActions
+                    );
+                } catch (error) {
+                    elizaLogger.error(
+                        `Error replying to tweet ${tweet.id}:`,
+                        error
+                    );
                 }
 
                 // Add these checks before creating memory
