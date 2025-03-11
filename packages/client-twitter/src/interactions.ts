@@ -64,10 +64,9 @@ Thread of Tweets You Are Replying To:
 # INSTRUCTIONS: Generate a post in the voice, style and perspective of {{agentName}} (@{{twitterUserName}}). 
 
 IMPORTANT FORMATTING RULES:
-1. DO NOT mention the same user (@username) more than once in your reply
-2. If multiple mentions are needed, only include each unique @username once in your reply
+1. DO NOT mention the same user (@username) more than once in your reply.
+2. If multiple mentions are needed, only include each unique @username once in your reply.
 3. You MUST include an action if the current post text includes a prompt that is similar to one of the available actions mentioned here:
-
 {{actionNames}}
 {{actions}}
 
