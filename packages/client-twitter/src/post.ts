@@ -249,6 +249,7 @@ export class TwitterPostClient {
             await this.client.init();
         }
 
+
         // Initialize Virtuals GAME if configured
         if (this.client.twitterConfig.VIRTUALS_GAME_SDK_API_KEY && await this.client.twitterClient.isLoggedIn()) {
             const runVirtualsGAMELoop = async () => {
