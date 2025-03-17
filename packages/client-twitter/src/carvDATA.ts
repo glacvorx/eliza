@@ -350,7 +350,6 @@ export async function analyzeData(
             runtime: runtime,
             context: prompt,
             modelClass: ModelClass.LARGE,
-            maxTokens: 1000,
         });
         elizaLogger.debug("[CARV] Analysis:", analysis);
 
