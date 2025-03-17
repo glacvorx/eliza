@@ -249,7 +249,6 @@ export class TwitterPostClient {
             await this.client.init();
         }
 
-
         // Initialize Virtuals GAME if configured
         if (this.client.twitterConfig.VIRTUALS_GAME_SDK_API_KEY && await this.client.twitterClient.isLoggedIn()) {
             const runVirtualsGAMELoop = async () => {
@@ -278,7 +277,6 @@ export class TwitterPostClient {
                 elizaLogger.error(`[Virtuals GAME] Error in Virtuals GAME loop: ${error}`);
             });
         }
-
 
         const generateNewTweetLoop = async () => {
             const lastPost = await this.runtime.cacheManager.get<{
