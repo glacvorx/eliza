@@ -250,6 +250,7 @@ export class TwitterPostClient {
             await this.client.init();
         }
 
+
         // Initialize Virtuals GAME if configured
         if (this.client.twitterConfig.VIRTUALS_GAME_SDK_API_KEY && await this.client.twitterClient.isLoggedIn()) {
             const runVirtualsGAMELoop = async () => {
@@ -278,7 +279,6 @@ export class TwitterPostClient {
                 elizaLogger.error(`[Virtuals GAME] Error in Virtuals GAME loop: ${error}`);
             });
         }
-
 
         const generateNewTweetLoop = async () => {
             const lastPost = await this.runtime.cacheManager.get<{
@@ -964,36 +964,22 @@ export class TwitterPostClient {
             try {
                 const executedActions: string[] = [];
 
-                // Check if tweet mentions our account before allowing reply
-                const isMentioned = tweet.mentions?.some(mention => 
-                    mention.username.toLowerCase() === this.twitterUsername.toLowerCase()
-                );
-
                 // Disable all actions except replies to mentions
                 actionResponse.like = false;
                 actionResponse.retweet = false;
                 actionResponse.quote = false;
-                
-                // Only allow replies to mentions
-                if (actionResponse.reply && !isMentioned) {
-                    actionResponse.reply = false;
-                    elizaLogger.log(`Skipping reply to tweet ${tweet.id} - not mentioned`);
-                }
 
-                // Handle replies to mentions
-                if (actionResponse.reply && isMentioned) {
-                    try {
-                        await this.handleTextOnlyReply(
-                            tweet,
-                            tweetState,
-                            executedActions
-                        );
-                    } catch (error) {
-                        elizaLogger.error(
-                            `Error replying to tweet ${tweet.id}:`,
-                            error
-                        );
-                    }
+                try {
+                    await this.handleTextOnlyReply(
+                        tweet,
+                        tweetState,
+                        executedActions
+                    );
+                } catch (error) {
+                    elizaLogger.error(
+                        `Error replying to tweet ${tweet.id}:`,
+                        error
+                    );
                 }
 
                 // Add these checks before creating memory

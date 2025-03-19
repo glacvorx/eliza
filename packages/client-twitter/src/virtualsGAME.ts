@@ -14,13 +14,44 @@ export async function runVirtualsGAME(twitterConfig: TwitterConfig, client: Clie
     try {
         let tweetPostedSuccessfully = false;
 
+        // Fetch timeline data for context
+        let timelineContext = "";
+        try {
+            // First try to get cached timeline
+            let timeline = await client.getCachedTimeline();
+
+            // If no cached timeline, fetch new timeline
+            if (!timeline || timeline.length === 0) {
+                elizaLogger.log("[Virtuals GAME] No cached timeline found, fetching new timeline...");
+                timeline = await client.fetchHomeTimeline(50);
+                await client.cacheTimeline(timeline);
+            }
+
+            if (timeline && timeline.length > 0) {
+                timelineContext = timeline.map(tweet =>
+                    `Tweet from @${tweet.username}: ${tweet.text}`
+                ).join("\n\n");
+
+                elizaLogger.debug("[Virtuals GAME] Timeline context generated from recent tweets");
+            }
+        } catch (error) {
+            elizaLogger.error("[Virtuals GAME] Error fetching timeline:", error);
+            // Continue execution even if timeline fetch fails
+        }
+
         // Create the post tweet function
         const postTweetFunction = new GameFunction({
             name: "post_tweet",
-            description: "Post a tweet about web3 gaming, crypto gaming, or blockchain gaming",
+            description: "Post a highly specific, data-driven tweet about web3 gaming that builds on or responds to recent timeline discussions",
             args: [
-                { name: "tweet", description: "The tweet content that must follow Agent_YP's style: lowercase except tickers/names, no emojis, one sentence or two short sentences, focused on web3 gaming insights" },
-                { name: "tweet_reasoning", description: "The reasoning behind the tweet, ensuring it aligns with Agent_YP's knowledge of web3 gaming metrics, market dynamics, and gaming trends" },
+                { 
+                    name: "tweet", 
+                    description: "The tweet content that must follow Agent_YP's style: lowercase except tickers/names, no emojis, one sentence or two short sentences. MUST include specific metrics, project names, or concrete observations. NEVER use generic statements like 'space is booming' or 'strong growth'. Instead cite specific numbers, trends, or project developments." 
+                },
+                { 
+                    name: "tweet_reasoning", 
+                    description: "Explain which specific data points, timeline tweets, or market events influenced this tweet. Reference concrete information rather than general trends." 
+                },
             ] as const,
             executable: async (args) => {
                 try {
@@ -130,15 +161,27 @@ export async function runVirtualsGAME(twitterConfig: TwitterConfig, client: Clie
         const twitterWorker = new GameWorker({
             id: "twitter_worker",
             name: "Web3 Gaming Twitter Worker",
-            description: "Worker that handles Twitter operations for web3 gaming insights and analysis",
+            description: "Worker that analyzes recent gaming trends and timeline context to generate specific, data-backed insights about web3 gaming",
             functions: [postTweetFunction],
         });
 
         // Initialize the Virtuals GAME agent with Agent_YP's personality
         const gameAgent = new GameAgent(twitterConfig.VIRTUALS_GAME_SDK_API_KEY, {
             name: "[Virtuals GAME] Agent_YP",
-            goal: "Share insightful web3 gaming analysis and track emerging trends in blockchain gaming. You are agent_yp, a web3 gaming-focused AI agent that maintains a blunt, data-driven tone focused on accurate insights without speculation.",
-            description: "A data-driven web3 gaming AI agent born in the Ronin trenches, focused on providing sharp insights about blockchain gaming, crypto gaming, and web3 gaming. Maintains a blunt, factual tone while delivering valuable market observations. Uses lowercase except for tickers and project names, avoids emojis, and keeps content concise with one sentence or two short sentences when necessary.",
+            goal: "Analyze recent timeline discussions and market data to share specific, quantifiable insights about web3 gaming. Avoid generic statements - focus on concrete metrics, specific projects, and measurable trends.",
+            description: `A data-driven web3 gaming AI agent that focuses on specific metrics and concrete observations. Never makes generic statements about "growth" or "booming" without backing it up with numbers. Uses lowercase except for tickers and project names, avoids emojis, and keeps content concise.
+
+            Rules for tweet generation:
+            1. MUST reference specific projects, metrics, or events
+            2. NEVER use generic terms like "booming", "growing", or "strong" without concrete data
+            3. Build upon or respond to recent timeline discussions
+            4. Focus on one specific insight rather than broad trends
+            5. If discussing growth or decline, include specific percentage changes or numbers
+
+            Recent Timeline Context (Use this to inform your tweets):
+            ${timelineContext}
+
+            Remember: Your value comes from providing specific, actionable insights, not generic observations.`,
             workers: [twitterWorker],
             llmModel: LLMModel.DeepSeek_V3,
         });
