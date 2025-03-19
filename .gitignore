@@ -37,10 +37,6 @@ output.log
 .DS_Store
 Thumbs.db
 
-characters/*
-!characters/.gitkeep
-!characters/c3po.character.json
-
 deploy-direct.sh
 deploy.sh
 
