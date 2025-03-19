@@ -15,7 +15,9 @@ jobs:
     steps:
       - name: Create configuration file(s)
         run: |
-          echo '${{ vars.ENV }}' | tr -d '\r' > .env
+          sudo apt-get update && sudo apt-get install -y dos2unix
+          echo '${{ vars.ENV }}' > .env
+          dos2unix .env
 
       - name: Install SSH keys
         # check this thread to understand why its needed:
