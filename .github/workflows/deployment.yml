@@ -15,17 +15,10 @@ jobs:
     steps:
       - name: Create configuration file(s)
         run: |
-          # Debug: Show the first few characters of the environment variable
-          echo "First 50 chars of ENV:"
-          echo '${{ vars.ENV }}' | head -c 50
-          echo
-          
-          # Write the environment variables using printf to avoid any shell interpretation
-          printf '%s\n' '${{ vars.ENV }}' > .env
-          
-          # Debug: Show the first few lines of the created file
-          echo "First few lines of .env file:"
-          head -n 3 .env
+          # Write the environment variables directly to file without shell interpretation
+          cat << 'EOF' > .env
+          ${{ vars.ENV }}
+          EOF
 
       - name: Install SSH keys
         # check this thread to understand why its needed:
