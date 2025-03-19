@@ -19,6 +19,7 @@ jobs:
           cat << 'EOF' > .env
           ${{ vars.ENV }}
           EOF
+          sed -i 's/\r$//' .env
 
       - name: Install SSH keys
         # check this thread to understand why its needed:
