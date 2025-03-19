@@ -6,6 +6,9 @@ on:
       environment:
         required: true
         type: string
+      update-code:
+        required: true
+        type: boolean
 
 jobs:
   deploy:
@@ -36,12 +39,20 @@ jobs:
       - name: Build & Restart Service
         run: |
           ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
+
           cd ${{ secrets.DEPLOY_PATH }}
+
           [ -d "${{ secrets.DEPLOY_PATH }}/packages/client-twitter/dist" ] && rm -rf "${{ secrets.DEPLOY_PATH }}/packages/client-twitter/dist"
           [ -d "${{ secrets.DEPLOY_PATH }}/packages/plugin-d.a.t.a/dist" ] && rm -rf "${{ secrets.DEPLOY_PATH }}/packages/plugin-d.a.t.a/dist"
+
           export NVM_DIR="$HOME/.nvm"
           [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
           [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
+
+          [ "${{ inputs.update-code }}" = true ] && git pull
+
           pnpm build
+
           sudo systemctl restart ${{ secrets.SERVICE_FILE }}
+
           EOF
