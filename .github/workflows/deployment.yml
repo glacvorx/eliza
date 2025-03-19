@@ -32,7 +32,7 @@ jobs:
         run: |
           rsync -azlh --delete .env ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ secrets.DEPLOY_PATH }}
 
-      - name: Upload configuration file(s)
+      - name: Build & Restart Service
         run: |
           ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << EOF
           cd ${{ secrets.DEPLOY_PATH }}
@@ -41,6 +41,7 @@ jobs:
           export NVM_DIR="$HOME/.nvm"
           [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
           [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
+          nvm use
           pnpm build
           sudo systemctl restart ${{ secrets.SERVICE_FILE }}
           EOF
