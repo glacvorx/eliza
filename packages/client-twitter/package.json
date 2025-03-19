@@ -21,7 +21,7 @@
     "dependencies": {
         "@elizaos/core": "workspace:*",
         "@elizaos/plugin-d.a.t.a": "workspace:*",
-        "@virtuals-protocol/game": "^0.1.9",
+        "@virtuals-protocol/game": "^0.1.10",
         "agent-twitter-client": "0.0.18",
         "discord.js": "14.16.3",
         "glob": "11.0.0"
