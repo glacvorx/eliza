@@ -19,6 +19,7 @@ import {
 } from "@elizaos/core";
 import type { ClientBase } from "./base";
 import { buildConversationThread, sendTweet, wait } from "./utils.ts";
+import { processCARVData } from "./carvDATA.ts";
 
 /**
  * Template used to generate the actual response content for both replies and mentions.
@@ -61,6 +62,9 @@ Here is the descriptions of images in the Current post.
 Thread of Tweets You Are Replying To:
 {{formattedConversation}}
 
+# On-Chain Data Insights:
+{{CARVInsights}}
+
 # INSTRUCTIONS: Generate a post in the voice, style and perspective of {{agentName}} (@{{twitterUserName}}). 
 
 IMPORTANT FORMATTING RULES:
@@ -69,6 +73,8 @@ IMPORTANT FORMATTING RULES:
 3. You MUST include an action if the current post text includes a prompt that is similar to one of the available actions mentioned here:
 {{actionNames}}
 {{actions}}
+
+If the on-chain data insights above don't contain error messages like "Could not generate analysis" or "Error analyzing", incorporate these blockchain insights into your response - they've been deemed relevant to this conversation. Integrate the insights naturally while maintaining {{agentName}}'s voice and conversational tone.
 
 Here is the current post text again. Remember to include an action if the current post text includes a prompt that asks for one of the available actions mentioned above (does not need to be exact)
 {{currentPost}}
@@ -105,6 +111,16 @@ For other users:
 - {{agentName}} should STOP if asked to stop
 - {{agentName}} should STOP if conversation is concluded
 - {{agentName}} is in a room with other users and wants to be conversational, but not annoying.
+
+BLOCKCHAIN/ONCHAIN DATA CONSIDERATIONS:
+- {{agentName}} should RESPOND to questions about onchain data or blockchain analytics
+- {{agentName}} should RESPOND when the tweet mentions specific blockchain addresses, transactions, or tokens
+- {{agentName}} should RESPOND to questions about on-chain activity, wallet balances, or transaction history
+- {{agentName}} should RESPOND to discussions about blockchain trends where on-chain data analysis would be valuable
+- {{agentName}} should RESPOND when a tweet references a specific Twitter user whose on-chain activities could be relevant
+- {{agentName}} should RESPOND to mentions of Ethereum, Bitcoin, Solana, or other blockchain data that could be queried
+- {{agentName}} may still IGNORE general crypto discussions without specific on-chain data needs
+- {{agentName}} may still IGNORE non-technical topics where blockchain data adds little value
 
 IMPORTANT:
 - {{agentName}} (aka @{{twitterUserName}}) is particularly sensitive about being annoying, so if there is any doubt, it is better to IGNORE than to RESPOND.
@@ -392,17 +408,22 @@ export class TwitterInteractionClient {
     elizaLogger.error("Error Occured during describing image: ", error);
 }
 
+        // Format image descriptions
+        const formattedImageDescriptions = imageDescriptionsArray.length > 0
+            ? `\nImages in Tweet:\n${imageDescriptionsArray.map((desc, i) =>
+                `Image ${i + 1}: ${desc.title ? `Title: ${desc.title}\n` : ''}Description: ${desc.description || 'No description'}`).join("\n\n")}`
+            : "";
 
-
+        // Extract quoted content if available
+        const quotedContent = tweet.quotedStatus ? tweet.quotedStatus.text || "" : "";
 
         let state = await this.runtime.composeState(message, {
             twitterClient: this.client.twitterClient,
             twitterUserName: this.client.twitterConfig.TWITTER_USERNAME,
             currentPost,
             formattedConversation,
-            imageDescriptions: imageDescriptionsArray.length > 0
-            ? `\nImages in Tweet:\n${imageDescriptionsArray.map((desc, i) =>
-              `Image ${i + 1}: Title: ${desc.title}\nDescription: ${desc.description}`).join("\n\n")}`:""
+            imageDescriptions: formattedImageDescriptions,
+            quotedContent,
         });
 
         // check if the tweet exists, save if it doesn't
@@ -462,9 +483,32 @@ export class TwitterInteractionClient {
             return { text: "Response Decision:", action: shouldRespond };
         }
 
+        let CARVInsights = "";
+        try {
+            elizaLogger.log("[CARV] Processing on-chain data for tweet since agent will respond");
+
+            CARVInsights = await processCARVData(
+                this.runtime,
+                this.client.twitterConfig.TWITTER_USERNAME,
+                tweet,
+                formattedConversation,
+                imageDescriptionsArray.map(desc => desc.description || "No description"),
+                quotedContent
+            );
+
+            if (CARVInsights) {
+                elizaLogger.log("[CARV] Added on-chain insights to response context");
+            }
+        } catch (error) {
+            elizaLogger.error("[CARV] Error fetching on-chain data:", error);
+            CARVInsights = "";
+        }
+
         const context = composeContext({
             state: {
                 ...state,
+                // Add CARV insights to the context
+                CARVInsights: CARVInsights,
                 // Convert actionNames array to string
                 actionNames: Array.isArray(state.actionNames)
                     ? state.actionNames.join(', ')
