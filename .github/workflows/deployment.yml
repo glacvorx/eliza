@@ -1,0 +1,42 @@
+name: Deploy Application
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        required: true
+        type: string
+
+jobs:
+  deploy:
+    with:
+      environment: ${{ inputs.environment }}
+    secrets: inherit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create configuration file(s)
+        run: |
+          echo '${{ vars.ENV }}' > .env
+          echo '${{ vars.CHARACTER }}' > Agent_YP.character.json
+
+      - name: Install SSH keys
+        # check this thread to understand why its needed:
+        # https://stackoverflow.com/a/70447517
+        run: |
+          install -m 600 -D /dev/null ~/.ssh/id_rsa
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.SSH_HOST }} > ~/.ssh/known_hosts
+
+      - name: Upload configuration file(s)
+        run: |
+          rsync -azlh --delete .env ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ secrets.DEPLOY_PATH }}
+          rsync -azlh --delete Agent_YP.character.json ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ secrets.DEPLOY_PATH }}/characters
+
+      - name: Upload configuration file(s)
+        run: |
+          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << EOF
+          cd ${{ secrets.DEPLOY_PATH }}
+          [ -d "${{ secrets.DEPLOY_PATH }}/packages/client-twitter/dist" ] && rm -rf "${{ secrets.DEPLOY_PATH }}/packages/client-twitter/dist"
+          [ -d "${{ secrets.DEPLOY_PATH }}/packages/plugin-d.a.t.a/dist" ] && rm -rf "${{ secrets.DEPLOY_PATH }}/packages/plugin-d.a.t.a/dist"
+          sudo systemctl restart ${{ secrets.SERVICE_FILE }}
+          EOF
