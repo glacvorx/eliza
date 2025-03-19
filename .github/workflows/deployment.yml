@@ -9,10 +9,9 @@ on:
 
 jobs:
   deploy:
-    with:
-      environment: ${{ inputs.environment }}
-    secrets: inherit
     runs-on: ubuntu-latest
+    environment:
+      name: ${{ inputs.environment }}
     steps:
       - name: Create configuration file(s)
         run: |
