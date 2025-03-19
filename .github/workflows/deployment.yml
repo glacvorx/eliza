@@ -15,7 +15,7 @@ jobs:
     steps:
       - name: Create configuration file(s)
         run: |
-          echo '${{ vars.ENV }}' > .env
+          echo '${{ vars.ENV }}' | tr -d '\r' > .env
 
       - name: Install SSH keys
         # check this thread to understand why its needed:
