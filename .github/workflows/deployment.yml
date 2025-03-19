@@ -38,6 +38,7 @@ jobs:
           cd ${{ secrets.DEPLOY_PATH }}
           [ -d "${{ secrets.DEPLOY_PATH }}/packages/client-twitter/dist" ] && rm -rf "${{ secrets.DEPLOY_PATH }}/packages/client-twitter/dist"
           [ -d "${{ secrets.DEPLOY_PATH }}/packages/plugin-d.a.t.a/dist" ] && rm -rf "${{ secrets.DEPLOY_PATH }}/packages/plugin-d.a.t.a/dist"
+          source ~/.bashrc
           pnpm build
           sudo systemctl restart ${{ secrets.SERVICE_FILE }}
           EOF
