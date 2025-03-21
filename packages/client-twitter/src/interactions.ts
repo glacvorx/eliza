@@ -19,6 +19,7 @@ import {
 } from "@elizaos/core";
 import type { ClientBase } from "./base";
 import { buildConversationThread, sendTweet, wait } from "./utils.ts";
+import { formatTweetUsingTemplate } from "./formatting.ts";
 
 /**
  * Template used to generate the actual response content for both replies and mentions.
@@ -494,6 +495,11 @@ export class TwitterInteractionClient {
             context,
             modelClass: ModelClass.LARGE,
         });
+
+        response.text = await formatTweetUsingTemplate(
+            this.runtime,
+            response.text
+        );
 
         const removeQuotes = (str: string) =>
             str.replace(/^['"](.*)['"]$/, "$1");
