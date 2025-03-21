@@ -1,4 +1,4 @@
-import { elizaLogger } from "@elizaos/core";
+import { elizaLogger, IAgentRuntime } from "@elizaos/core";
 import { TwitterConfig } from "./environment";
 import { ClientBase } from "./base";
 import {
@@ -9,8 +9,9 @@ import {
     GameWorker,
     LLMModel,
 } from "@virtuals-protocol/game";
+import { formatTweetUsingTemplate } from "./formatting";
 
-export async function runVirtualsGAME(twitterConfig: TwitterConfig, client: ClientBase): Promise<{success: boolean; error?: string}> {
+export async function runVirtualsGAME(twitterConfig: TwitterConfig, client: ClientBase, runtime: IAgentRuntime): Promise<{success: boolean; error?: string}> {
     try {
         let tweetPostedSuccessfully = false;
 
@@ -55,8 +56,13 @@ export async function runVirtualsGAME(twitterConfig: TwitterConfig, client: Clie
             ] as const,
             executable: async (args) => {
                 try {
+                    const formattedTweet = await formatTweetUsingTemplate(
+                        runtime,
+                        args.tweet
+                    );
+
                     // Sanitize the tweet content before posting
-                    const rawTweetContent = args.tweet;
+                    const rawTweetContent = formattedTweet;
                     let tweetTextForPosting = rawTweetContent.trim();
 
                     // Final cleaning

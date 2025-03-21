@@ -33,6 +33,7 @@ import type { ActionResponse } from "@elizaos/core";
 import { MediaData } from "./types.ts";
 import { runVirtualsGAME } from "./virtualsGAME";
 import { processCARVData } from "./carvDATA.ts";
+import { formatTweetUsingTemplate } from "./formatting.ts";
 
 const MAX_TIMELINES_TO_FETCH = 15;
 
@@ -256,7 +257,7 @@ export class TwitterPostClient {
             const runVirtualsGAMELoop = async () => {
                 let result: { success: boolean; error?: string; };
                 do {
-                    result = await runVirtualsGAME(this.client.twitterConfig, this.client);
+                    result = await runVirtualsGAME(this.client.twitterConfig, this.client, this.runtime);
                     if (!result.success) {
                         elizaLogger.error("[Virtuals GAME] Tweet generation unsuccessful, this SDK sucks. Retrying in 1 minute.");
                         // Wait 1 minute before retrying
@@ -627,11 +628,16 @@ export class TwitterPostClient {
             // );
             elizaLogger.log("Recent posts in state:", state.recentPosts);
 
-            const response = await generateText({
+            let response = await generateText({
                 runtime: this.runtime,
                 context,
                 modelClass: ModelClass.MEDIUM,
             });
+
+            response = await formatTweetUsingTemplate(
+                this.runtime,
+                response
+            );
 
             const rawTweetContent = cleanJsonResponse(response);
 
@@ -1114,7 +1120,7 @@ export class TwitterPostClient {
             );
 
             // Generate and clean the reply content
-            const replyText = await this.generateTweetContent(enrichedState, {
+            let replyText = await this.generateTweetContent(enrichedState, {
                 template:
                     this.runtime.character.templates
                         ?.twitterMessageHandlerTemplate ||
@@ -1125,6 +1131,11 @@ export class TwitterPostClient {
                 elizaLogger.error("Failed to generate valid reply content");
                 return;
             }
+
+            replyText = await formatTweetUsingTemplate(
+                this.runtime,
+                replyText
+            );
 
             if (this.isDryRun) {
                 elizaLogger.info(
