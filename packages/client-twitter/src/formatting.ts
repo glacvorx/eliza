@@ -89,11 +89,21 @@ ATH Update: [Project X] token hit a new ATH, reaching [$X] after a [X%] pump.
    - Calculate percentages when possible
    - Format currency values consistently
    - Round large numbers appropriately
-3. If some data in square brackets is missing but the tweet matches a template:
-   - Format the tweet anyway, excluding the missing data
-   - Keep the template structure but omit the missing parts
-4. If it matches, respond with [FORMAT_TWEET] followed by the formatted text
-5. If it doesn't match any format, respond with [SKIP_FORMAT]
+3. For missing data:
+   - NEVER include template placeholders (e.g., [X], [Project X]) in the output
+   - If a number is missing, describe the metric without the specific value
+   - If a project name is missing, use "the project" or similar generic terms
+   - If a date is missing, use relative terms like "today", "recently", or "soon"
+   - If a percentage is missing, describe the trend without the specific number
+4. Examples of handling missing data:
+   - If "Daily Active Users" template matches but user count is missing:
+     ❌ "Parallel hit [X] daily active users, marking a 15% growth from last month"
+     ✅ "Parallel has seen significant growth in daily active users, marking a 15% increase from last month"
+   - If "Token Price Increase" template matches but price is missing:
+     ❌ "Token $X pumped [X%] in the last 24 hours, reaching [$X]"
+     ✅ "Token has shown strong growth in the last 24 hours"
+5. If it matches, respond with [FORMAT_TWEET] followed by the formatted text
+6. If it doesn't match any format, respond with [SKIP_FORMAT]
 
 Return ONLY the action tag and formatted text (if applicable) without any additional explanation.
 `;
