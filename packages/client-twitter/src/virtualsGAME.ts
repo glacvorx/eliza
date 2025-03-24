@@ -47,7 +47,7 @@ export async function runVirtualsGAME(twitterConfig: TwitterConfig, client: Clie
             args: [
                 { 
                     name: "tweet", 
-                    description: "The tweet content that must follow Agent_YP's style: lowercase except tickers/names, no emojis, one sentence or two short sentences. MUST include specific metrics, project names, or concrete observations. NEVER use generic statements like 'space is booming' or 'strong growth'. Instead cite specific numbers, trends, or project developments." 
+                    description: "The tweet content that must follow Agent_YP's style: lowercase except tickers/names, no emojis, one sentence or two short sentences. MUST include specific metrics, project names, or concrete observations. NEVER use generic statements like 'space is booming' or 'strong growth'. Instead cite specific numbers, trends, or project developments. Should not start with a user mention." 
                 },
                 { 
                     name: "tweet_reasoning", 
