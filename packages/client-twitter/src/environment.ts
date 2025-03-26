@@ -82,6 +82,7 @@ export const twitterEnvSchema = z.object({
     TWITTER_CLIENT_USER_AGENT: z.string(),
     VIRTUALS_GAME_SDK_API_KEY: z.string(),
     VIRTUALS_GAME_POST_INTERVAL: z.number().int(),
+    TWITTER_COINGECKO_API_KEY: z.string(),
 });
 
 export type TwitterConfig = z.infer<typeof twitterEnvSchema>;
@@ -270,6 +271,10 @@ export async function validateTwitterConfig(
                 process.env.VIRTUALS_GAME_POST_INTERVAL,
                 120
             ),
+
+            TWITTER_COINGECKO_API_KEY:
+                runtime.getSetting("TWITTER_COINGECKO_API_KEY") ||
+                process.env.TWITTER_COINGECKO_API_KEY,
         };
 
         return twitterEnvSchema.parse(twitterConfig);
