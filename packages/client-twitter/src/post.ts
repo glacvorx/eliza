@@ -34,6 +34,7 @@ import { MediaData } from "./types.ts";
 import { runVirtualsGAME } from "./virtualsGAME";
 import { processCARVData } from "./carvDATA.ts";
 import { formatTweetUsingTemplate } from "./formatting.ts";
+import { runCoinGecko } from "./coinGecko";
 
 const MAX_TIMELINES_TO_FETCH = 15;
 
@@ -278,6 +279,43 @@ export class TwitterPostClient {
             // Start the initial loop
             runVirtualsGAMELoop().catch(error => {
                 elizaLogger.error(`[Virtuals GAME] Error in Virtuals GAME loop: ${error}`);
+            });
+        }
+
+        // Initialize CoinGecko if configured
+        if (this.client.twitterConfig.TWITTER_COINGECKO_API_KEY && await this.client.twitterClient.isLoggedIn()) {
+            const runCoinGeckoLoop = async () => {
+                const now = new Date();
+                const currentHour = now.getHours();
+                const currentMinute = now.getMinutes();
+
+                if (currentHour === 8 && currentMinute === 0) {
+                    elizaLogger.info("[CoinGecko] Attempting to post gaming tokens update...");
+                    let result: { success: boolean; error?: string; };
+
+                    do {
+                        result = await runCoinGecko(this.client.twitterConfig, this.client, this.runtime);
+                        if (!result.success) {
+                            elizaLogger.error("[CoinGecko] Tweet generation unsuccessful. Retrying in 1 minute.");
+                            // Wait 1 minute before retrying
+                            await new Promise(r => setTimeout(r, 60 * 1000));
+                        }
+                    } while (!result.success);
+
+                    elizaLogger.info("[CoinGecko] Tweet posted successfully.");
+                } else {
+                    elizaLogger.debug(`[CoinGecko] Skipping post - current time is ${currentHour}:${currentMinute}.`);
+                }
+
+                // Check again in 1 minute
+                setTimeout(() => {
+                    runCoinGeckoLoop();
+                }, 60 * 1000);
+            };
+
+            // Start the initial loop
+            runCoinGeckoLoop().catch(error => {
+                elizaLogger.error(`[CoinGecko] Error in CoinGecko loop: ${error}`);
             });
         }
 
