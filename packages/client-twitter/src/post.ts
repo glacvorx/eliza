@@ -289,7 +289,7 @@ export class TwitterPostClient {
                 const currentHour = now.getHours();
                 const currentMinute = now.getMinutes();
 
-                if (currentHour === 8 && currentMinute === 0) {
+                if (currentHour === 0 && currentMinute === 0) {
                     elizaLogger.info("[CoinGecko] Attempting to post gaming tokens update...");
                     let result: { success: boolean; error?: string; };
 
