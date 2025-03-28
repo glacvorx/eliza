@@ -74,8 +74,8 @@ async function generateTweetContent(data: CoinGeckoResponse[]): Promise<string> 
     ).join(", ");
     */
 
-    return `Web3 Gaming Token Gainers: ${gainersText}.`;
-    // return `Web3 Gaming Token Gainers: ${gainersText}.\n\nWeb3 Gaming Token Losers: ${losersText}.`;
+    return `Web3 Gaming Token Gainers: ${gainersText}.\n\nPowered by CoinGecko.`;
+    // return `Web3 Gaming Token Gainers: ${gainersText}.\n\nWeb3 Gaming Token Losers: ${losersText}.\n\nPowered by CoinGecko.`;
 }
 
 export async function runCoinGecko(twitterConfig: TwitterConfig, client: ClientBase, runtime: IAgentRuntime): Promise<{success: boolean; error?: string}> {
