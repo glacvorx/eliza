@@ -98,6 +98,7 @@
         "@elizaos/plugin-cronoszkevm": "workspace:*",
         "@elizaos/plugin-cronos": "workspace:*",
         "@elizaos/plugin-3d-generation": "workspace:*",
+        "@elizaos/plugin-d.a.t.a": "workspace:*",
         "@elizaos/plugin-fuel": "workspace:*",
         "@elizaos/plugin-avalanche": "workspace:*",
         "@elizaos/plugin-video-generation": "workspace:*",

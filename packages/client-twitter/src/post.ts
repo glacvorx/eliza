@@ -32,6 +32,7 @@ import type { State } from "@elizaos/core";
 import type { ActionResponse } from "@elizaos/core";
 import { MediaData } from "./types.ts";
 import { runVirtualsGAME } from "./virtualsGAME";
+import { processCARVData } from "./carvDATA.ts";
 import { formatTweetUsingTemplate } from "./formatting.ts";
 import { runCoinGecko } from "./coinGecko";
 
@@ -1120,6 +1121,16 @@ export class TwitterPostClient {
                 }
             }
 
+            // Process CARV data
+            const CARVInsights = await processCARVData(
+                this.runtime,
+                this.twitterUsername,
+                tweet,
+                formattedConversation,
+                imageDescriptions,
+                quotedContent
+            );
+
             // Compose rich state with all context
             const enrichedState = await this.runtime.composeState(
                 {
@@ -1141,6 +1152,7 @@ export class TwitterPostClient {
                                 .join("\n")}`
                             : "",
                     quotedContent,
+                    CARVInsights,
                 }
             );
 
