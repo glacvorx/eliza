@@ -55,11 +55,14 @@ export async function runVirtualsGAME(twitterConfig: TwitterConfig, client: Clie
                 },
             ] as const,
             executable: async (args) => {
+                let formattedTweet = args.tweet;
                 try {
-                    const formattedTweet = await formatTweetUsingTemplate(
-                        runtime,
-                        args.tweet
-                    );
+                    if (twitterConfig.ENABLE_TWEET_FORMATTING) {
+                        formattedTweet = await formatTweetUsingTemplate(
+                            runtime,
+                            args.tweet
+                        );
+                    }
 
                     // Sanitize the tweet content before posting
                     const rawTweetContent = formattedTweet;

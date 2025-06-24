@@ -83,6 +83,8 @@ export const twitterEnvSchema = z.object({
     VIRTUALS_GAME_SDK_API_KEY: z.string(),
     VIRTUALS_GAME_POST_INTERVAL: z.number().int(),
     TWITTER_COINGECKO_API_KEY: z.string(),
+    ENABLE_CARV_DATA: z.boolean(),
+    ENABLE_TWEET_FORMATTING: z.boolean(),
 });
 
 export type TwitterConfig = z.infer<typeof twitterEnvSchema>;
@@ -275,6 +277,18 @@ export async function validateTwitterConfig(
             TWITTER_COINGECKO_API_KEY:
                 runtime.getSetting("TWITTER_COINGECKO_API_KEY") ||
                 process.env.TWITTER_COINGECKO_API_KEY,
+
+            ENABLE_CARV_DATA:
+                parseBooleanFromText(
+                    runtime.getSetting("ENABLE_CARV_DATA") ||
+                    process.env.ENABLE_CARV_DATA
+                ) ?? false,
+
+            ENABLE_TWEET_FORMATTING:
+                parseBooleanFromText(
+                    runtime.getSetting("ENABLE_TWEET_FORMATTING") ||
+                    process.env.ENABLE_TWEET_FORMATTING
+                ) ?? false,
         };
 
         return twitterEnvSchema.parse(twitterConfig);

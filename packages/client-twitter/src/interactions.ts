@@ -485,24 +485,26 @@ export class TwitterInteractionClient {
         }
 
         let CARVInsights = "";
-        try {
-            elizaLogger.log("[CARV] Processing on-chain data for tweet since agent will respond");
+        if (this.client.twitterConfig.ENABLE_CARV_DATA) {
+            try {
+                elizaLogger.log("[CARV] Processing on-chain data for tweet since agent will respond");
 
-            CARVInsights = await processCARVData(
-                this.runtime,
-                this.client.twitterConfig.TWITTER_USERNAME,
-                tweet,
-                formattedConversation,
-                imageDescriptionsArray.map(desc => desc.description || "No description"),
-                quotedContent
-            );
+                CARVInsights = await processCARVData(
+                    this.runtime,
+                    this.client.twitterConfig.TWITTER_USERNAME,
+                    tweet,
+                    formattedConversation,
+                    imageDescriptionsArray.map(desc => desc.description || "No description"),
+                    quotedContent
+                );
 
-            if (CARVInsights) {
-                elizaLogger.log("[CARV] Added on-chain insights to response context");
+                if (CARVInsights) {
+                    elizaLogger.log("[CARV] Added on-chain insights to response context");
+                }
+            } catch (error) {
+                elizaLogger.error("[CARV] Error fetching on-chain data:", error);
+                CARVInsights = "";
             }
-        } catch (error) {
-            elizaLogger.error("[CARV] Error fetching on-chain data:", error);
-            CARVInsights = "";
         }
 
         const context = composeContext({
@@ -540,10 +542,12 @@ export class TwitterInteractionClient {
             modelClass: ModelClass.LARGE,
         });
 
-        response.text = await formatTweetUsingTemplate(
-            this.runtime,
-            response.text
-        );
+        if (this.client.twitterConfig.ENABLE_TWEET_FORMATTING) {
+            response.text = await formatTweetUsingTemplate(
+                this.runtime,
+                response.text
+            );
+        }
 
         const removeQuotes = (str: string) =>
             str.replace(/^['"](.*)['"]$/, "$1");

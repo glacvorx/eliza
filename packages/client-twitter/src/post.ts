@@ -671,10 +671,12 @@ export class TwitterPostClient {
                 modelClass: ModelClass.MEDIUM,
             });
 
-            response = await formatTweetUsingTemplate(
-                this.runtime,
-                response
-            );
+            if (this.client.twitterConfig.ENABLE_TWEET_FORMATTING) {
+                response = await formatTweetUsingTemplate(
+                    this.runtime,
+                    response
+                );
+            }
 
             const rawTweetContent = cleanJsonResponse(response);
 
@@ -1122,14 +1124,17 @@ export class TwitterPostClient {
             }
 
             // Process CARV data
-            const CARVInsights = await processCARVData(
-                this.runtime,
-                this.twitterUsername,
-                tweet,
-                formattedConversation,
-                imageDescriptions,
-                quotedContent
-            );
+            let CARVInsights = "";
+            if (this.client.twitterConfig.ENABLE_CARV_DATA) {
+                CARVInsights = await processCARVData(
+                    this.runtime,
+                    this.twitterUsername,
+                    tweet,
+                    formattedConversation,
+                    imageDescriptions,
+                    quotedContent
+                );
+            }
 
             // Compose rich state with all context
             const enrichedState = await this.runtime.composeState(
@@ -1169,10 +1174,12 @@ export class TwitterPostClient {
                 return;
             }
 
-            replyText = await formatTweetUsingTemplate(
-                this.runtime,
-                replyText
-            );
+            if (this.client.twitterConfig.ENABLE_TWEET_FORMATTING) {
+                replyText = await formatTweetUsingTemplate(
+                    this.runtime,
+                    replyText
+                );
+            }
 
             if (this.isDryRun) {
                 elizaLogger.info(
