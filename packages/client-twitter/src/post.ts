@@ -35,6 +35,7 @@ import { runVirtualsGAME } from "./virtualsGAME";
 import { processCARVData } from "./carvDATA.ts";
 import { formatTweetUsingTemplate } from "./formatting.ts";
 import { runCoinGecko } from "./coinGecko";
+import { processVirtualsACP } from "./virtualsACP.ts";
 
 const MAX_TIMELINES_TO_FETCH = 15;
 
@@ -1136,6 +1137,20 @@ export class TwitterPostClient {
                 );
             }
 
+            // Process Virtuals ACP data
+            let ACPJobStatus = "";
+            if (this.client.twitterConfig.ENABLE_VIRTUALS_ACP) {
+                ACPJobStatus = await processVirtualsACP(
+                    this.runtime,
+                    this.twitterUsername,
+                    tweet,
+                    formattedConversation,
+                    imageDescriptions,
+                    quotedContent,
+                    this.client.twitterConfig
+                );
+            }
+
             // Compose rich state with all context
             const enrichedState = await this.runtime.composeState(
                 {
@@ -1158,6 +1173,7 @@ export class TwitterPostClient {
                             : "",
                     quotedContent,
                     CARVInsights,
+                    ACPJobStatus, // Contains job status and seller response if available
                 }
             );
 

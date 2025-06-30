@@ -21,6 +21,7 @@ import type { ClientBase } from "./base";
 import { buildConversationThread, sendTweet, wait } from "./utils.ts";
 import { processCARVData } from "./carvDATA.ts";
 import { formatTweetUsingTemplate } from "./formatting.ts";
+import { processVirtualsACP } from "./virtualsACP.ts";
 
 /**
  * Template used to generate the actual response content for both replies and mentions.
@@ -66,6 +67,9 @@ Thread of Tweets You Are Replying To:
 # On-Chain Data Insights:
 {{CARVInsights}}
 
+# ACP Job Status and Seller Response:
+{{ACPJobStatus}}
+
 # INSTRUCTIONS: Generate a post in the voice, style and perspective of {{agentName}} (@{{twitterUserName}}). 
 
 IMPORTANT FORMATTING RULES:
@@ -76,6 +80,19 @@ IMPORTANT FORMATTING RULES:
 {{actions}}
 
 If the on-chain data insights above don't contain error messages like "Could not generate analysis" or "Error analyzing", incorporate these blockchain insights into your response - they've been deemed relevant to this conversation. Integrate the insights naturally while maintaining {{agentName}}'s voice and conversational tone.
+
+ACP JOB INTEGRATION INSTRUCTIONS:
+- If ACPJobStatus contains a seller response (look for "Seller Response:" in the text), incorporate that response naturally into your reply. PRESERVE ALL DETAILS, STATISTICS, AND ANALYSIS from the seller response - do not summarize or condense the information. The seller response contains valuable work results that should be shared with the user in full detail.
+- CRITICAL: When seller responses contain multiple tokens/items, you MUST include ALL tokens/items mentioned in the response. Do not pick and choose - include every single one with their key details.
+- For each token/item in the seller response, include: token name/ticker, score, key rationale, and most relevant summary points. Do not omit any tokens from the response.
+- If the seller response contains detailed JSON data with multiple entries, parse and include ALL entries with their respective details (scores, rationales, summaries, etc.).
+- If ACPJobStatus indicates a job was completed with a success response (look for "Job completed successfully" or similar), acknowledge the completion and mention that the job was processed successfully.
+- If ACPJobStatus shows no job was initiated (empty string), you can ignore ACP-related content in your response.
+- If ACPJobStatus contains error messages like "No suitable agents found", "service unavailable", "Error:", "Failed:", "Schema validation failed", "Job is in progress", "Job is still in progress", "Job monitoring timeout", or any other error indicators or uncertain status messages, completely ignore ACP-related content in your response and do not mention ACP at all.
+- Always maintain {{agentName}}'s voice and style when incorporating ACP information.
+- Remember that ACP jobs will always have a response - either immediate data, success confirmation, or status updates. The response will be available in the ACPJobStatus field.
+- When incorporating seller responses, maintain the agent's conversational tone while preserving all technical details, metrics, and analysis provided by the seller.
+- IMPORTANT: Work within Twitter's 280 character limit while still including ALL tokens/items from the seller response. Use abbreviations and concise language but ensure every token/item is mentioned with their key details.
 
 Here is the current post text again. Remember to include an action if the current post text includes a prompt that asks for one of the available actions mentioned above (does not need to be exact)
 {{currentPost}}
@@ -507,11 +524,26 @@ export class TwitterInteractionClient {
             }
         }
 
+        let ACPJobStatus = "";
+        if (this.client.twitterConfig.ENABLE_VIRTUALS_ACP) {
+            ACPJobStatus = await processVirtualsACP(
+                this.runtime,
+                this.client.twitterConfig.TWITTER_USERNAME,
+                tweet,
+                formattedConversation,
+                imageDescriptionsArray.map(desc => desc.description || "No description"),
+                quotedContent,
+                this.client.twitterConfig
+            );
+        }
+
         const context = composeContext({
             state: {
                 ...state,
                 // Add CARV insights to the context
                 CARVInsights: CARVInsights,
+                // Add ACP seller response to the context (includes job status and any seller response)
+                ACPJobStatus: ACPJobStatus,
                 // Convert actionNames array to string
                 actionNames: Array.isArray(state.actionNames)
                     ? state.actionNames.join(', ')
