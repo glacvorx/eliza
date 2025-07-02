@@ -35,7 +35,7 @@ import { runVirtualsGAME } from "./virtualsGAME";
 import { processCARVData } from "./carvDATA.ts";
 import { formatTweetUsingTemplate } from "./formatting.ts";
 import { runCoinGecko } from "./coinGecko";
-import { processVirtualsACP } from "./virtualsACP.ts";
+import { processVirtualsACP, initializeACPServiceProvider } from "./virtualsACP.ts";
 
 const MAX_TIMELINES_TO_FETCH = 15;
 
@@ -112,7 +112,14 @@ interface PendingTweet {
 
 type PendingTweetApprovalStatus = "PENDING" | "APPROVED" | "REJECTED";
 
-export class TwitterPostClient {
+/**
+ * Minimal interface for tweet generation to avoid circular references
+ */
+export interface ITweetGenerator {
+    generateTweetForACP(): Promise<{ tweetText: string; rawTweetContent: string; mediaData?: MediaData[] }>;
+}
+
+export class TwitterPostClient implements ITweetGenerator {
     client: ClientBase;
     runtime: IAgentRuntime;
     twitterUsername: string;
@@ -125,6 +132,7 @@ export class TwitterPostClient {
     private discordApprovalChannelId: string;
     private approvalCheckInterval: number;
     private nextScheduledPostTime = 0; // Initialize to 0 to ensure first check triggers a post if needed
+    private acpServiceProvider: any = null; // Store the ACP service provider instance
 
     constructor(client: ClientBase, runtime: IAgentRuntime) {
         this.client = client;
@@ -317,6 +325,17 @@ export class TwitterPostClient {
             runCoinGeckoLoop().catch(error => {
                 elizaLogger.error(`[CoinGecko] Error in CoinGecko loop: ${error}`);
             });
+        }
+
+        // Initialize ACP Service Provider if configured
+        if (this.client.twitterConfig.ENABLE_VIRTUALS_ACP) {
+            elizaLogger.log("[Virtuals ACP] Initializing ACP service provider...");
+            try {
+                this.acpServiceProvider = await initializeACPServiceProvider(this.client.twitterConfig, this);
+                elizaLogger.log("[Virtuals ACP] Service provider initialized successfully and listening for job requests");
+            } catch (error) {
+                elizaLogger.error("[Virtuals ACP] Error initializing service provider:", error);
+            }
         }
 
         const generateNewTweetLoop = async () => {
@@ -585,10 +604,10 @@ export class TwitterPostClient {
     }
 
     /**
-     * Generates and posts a new tweet. If isDryRun is true, only logs what would have been posted.
+     * Generates tweet content without posting it. Returns the cleaned and formatted tweet text.
      */
-    async generateNewTweet() {
-        elizaLogger.log("Generating new tweet");
+    public async generateTweetContentOnly(): Promise<{ tweetText: string; rawTweetContent: string; mediaData?: MediaData[] }> {
+        elizaLogger.log("Generating tweet content");
 
         try {
             const roomId = stringToUuid(
@@ -737,6 +756,31 @@ export class TwitterPostClient {
                 fixNewLines(tweetTextForPosting)
             );
 
+            return {
+                tweetText: tweetTextForPosting,
+                rawTweetContent: rawTweetContent,
+                mediaData: mediaData
+            };
+        } catch (error) {
+            elizaLogger.error("Error generating tweet content:", error);
+            throw error;
+        }
+    }
+
+    /**
+     * Generates and posts a new tweet. If isDryRun is true, only logs what would have been posted.
+     */
+    async generateNewTweet() {
+        elizaLogger.log("Generating new tweet");
+
+        try {
+            const roomId = stringToUuid(
+                "twitter_generate_room-" + this.client.profile.username
+            );
+
+            // Generate tweet content using the new reusable function
+            const { tweetText: tweetTextForPosting, rawTweetContent, mediaData } = await this.generateTweetContentOnly();
+
             if (this.isDryRun) {
                 elizaLogger.info(
                     `Dry run: would have posted tweet: ${tweetTextForPosting}`
@@ -776,6 +820,13 @@ export class TwitterPostClient {
         } catch (error) {
             elizaLogger.error("Error generating new tweet:", error);
         }
+    }
+
+    /**
+     * Implementation of ITweetGenerator interface for ACP service
+     */
+    public async generateTweetForACP(): Promise<{ tweetText: string; rawTweetContent: string; mediaData?: MediaData[] }> {
+        return this.generateTweetContentOnly();
     }
 
     private async generateTweetContent(
@@ -1242,6 +1293,18 @@ export class TwitterPostClient {
 
     async stop() {
         this.stopProcessingActions = true;
+        
+        // Clean up ACP service provider if it exists
+        if (this.acpServiceProvider) {
+            try {
+                elizaLogger.log("[Virtuals ACP] Stopping service provider...");
+                // The AcpClient should handle its own cleanup when the instance is destroyed
+                this.acpServiceProvider = null;
+                elizaLogger.log("[Virtuals ACP] Service provider stopped");
+            } catch (error) {
+                elizaLogger.error("[Virtuals ACP] Error stopping service provider:", error);
+            }
+        }
     }
 
     private async sendForApproval(

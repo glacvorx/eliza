@@ -2,6 +2,7 @@ import { elizaLogger, IAgentRuntime, stringToUuid, generateText, ModelClass, com
 import { TwitterConfig } from "./environment";
 import { Address } from '@aa-sdk/core';
 import { Tweet } from "agent-twitter-client";
+import { ITweetGenerator } from "./post.ts";
 
 /**
  * Template for determining ACP service usage and generating task details
@@ -743,4 +744,110 @@ export async function processVirtualsACP(
     }
 
     return sellerResponse;
+}
+
+/**
+ * Creates and configures an ACP service provider for providing services
+ */
+export async function initializeACPServiceProvider(twitterConfig: TwitterConfig, tweetGenerator?: ITweetGenerator): Promise<any> {
+    if (!twitterConfig.VIRTUALS_ACP_SELLER_WALLET_ADDRESS) {
+        elizaLogger.error("[Virtuals ACP] VIRTUALS_ACP_SELLER_WALLET_ADDRESS is not set");
+        return null;
+    }
+    if (!twitterConfig.VIRTUALS_ACP_SELLER_ENTITY_ID) {
+        elizaLogger.error("[Virtuals ACP] VIRTUALS_ACP_SELLER_ENTITY_ID is not set");
+        return null;
+    }
+    if (!twitterConfig.VIRTUALS_ACP_SELLER_PRIVATE_KEY) {
+        elizaLogger.error("[Virtuals ACP] VIRTUALS_ACP_SELLER_PRIVATE_KEY is not set");
+        return null;
+    }
+
+    try {
+        // Dynamic import to avoid constructor issues
+        const AcpModule = await import("@virtuals-protocol/acp-node");
+
+        // Try all possible locations for the class
+        const AcpClient = (AcpModule as any).default?.default || (AcpModule as any).default || (AcpModule as any).AcpClient;
+        const { AcpContractClient, AcpJobPhases, baseAcpConfig } = AcpModule;
+
+        const sellerClient = new AcpClient({
+            acpContractClient: await AcpContractClient.build(
+                twitterConfig.VIRTUALS_ACP_SELLER_PRIVATE_KEY as Address,
+                twitterConfig.VIRTUALS_ACP_SELLER_ENTITY_ID,
+                twitterConfig.VIRTUALS_ACP_SELLER_WALLET_ADDRESS as Address,
+                baseAcpConfig,
+            ),
+            onNewTask: async (job: any) => {
+                elizaLogger.log("[Virtuals ACP] New task received:", String(job.id));
+
+                // Handle job request phase - respond to incoming job requests
+                if (
+                    job.phase === AcpJobPhases.REQUEST &&
+                    job.memos.find((m: any) => m.nextPhase === AcpJobPhases.NEGOTIATION)
+                ) {
+                    elizaLogger.log("[Virtuals ACP] Responding to job", String(job.id));
+                    try {
+                        await job.respond(true);
+                        elizaLogger.log(`[Virtuals ACP] Job ${String(job.id)} responded successfully`);
+                    } catch (error) {
+                        elizaLogger.error(`[Virtuals ACP] Error responding to job ${String(job.id)}:`, error);
+                    }
+                } 
+                // Handle transaction phase - deliver the service
+                else if (
+                    job.phase === AcpJobPhases.TRANSACTION &&
+                    job.memos.find((m: any) => m.nextPhase === AcpJobPhases.EVALUATION)
+                ) {
+                    elizaLogger.log("[Virtuals ACP] Delivering job", String(job.id));
+                    try {
+                        let serviceResult: string | undefined = undefined;
+                        let tweetContent: any = undefined;
+                        let lastError: any = undefined;
+                        let maxAttempts = 5;
+                        for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+                            try {
+                                tweetContent = await tweetGenerator.generateTweetForACP();
+                                serviceResult = JSON.stringify({
+                                    type: "tweet_content",
+                                    content: tweetContent.tweetText,
+                                    rawContent: tweetContent.rawTweetContent,
+                                    timestamp: new Date().toISOString(),
+                                    service: "twitter_content_generation"
+                                });
+                                elizaLogger.log(`[Virtuals ACP] Generated tweet content for job ${String(job.id)} (attempt ${attempt}):`, tweetContent.tweetText.substring(0, 100) + "...");
+                                break;
+                            } catch (tweetError) {
+                                lastError = tweetError;
+                                elizaLogger.error(`[Virtuals ACP] Error generating tweet content for job ${String(job.id)} (attempt ${attempt}):`, tweetError);
+                                if (attempt < maxAttempts) {
+                                    await new Promise(res => setTimeout(res, 2000)); // 2 second delay between attempts
+                                }
+                            }
+                        }
+                        if (serviceResult) {
+                            await job.deliver(serviceResult);
+                            elizaLogger.log(`[Virtuals ACP] Job ${String(job.id)} delivered successfully`);
+                        } else {
+                            elizaLogger.error(`[Virtuals ACP] Failed to generate tweet content for job ${String(job.id)} after 5 attempts. Not delivering job.`);
+                            // Do not deliver if we cannot generate after retries
+                        }
+                    } catch (error) {
+                        elizaLogger.error(`[Virtuals ACP] Error delivering job ${String(job.id)}:`, error);
+                    }
+                }
+            },
+        });
+
+        elizaLogger.log("[Virtuals ACP] Seller client created successfully");
+        return sellerClient;
+    } catch (error) {
+        elizaLogger.error("[Virtuals ACP] Error creating seller client:", error);
+        if (error instanceof Error) {
+            elizaLogger.error("[Virtuals ACP] Error name:", error.name);
+            elizaLogger.error("[Virtuals ACP] Error message:", error.message);
+            elizaLogger.error("[Virtuals ACP] Error stack:", error.stack);
+        }
+        return null;
+    }
 }
