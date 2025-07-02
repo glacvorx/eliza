@@ -366,16 +366,16 @@ async function generateJobRequirementObject(
 }
 
 async function buyACPService(twitterConfig: TwitterConfig, agentFilterKeyword: string, jobRequirement: string, runtime: IAgentRuntime): Promise<{ acpClient: any; jobId: string | null; AcpJobPhases: any; sellerResponse: string }> {
-    if (!twitterConfig.VIRTUALS_ACP_WALLET_ADDRESS) {
+    if (!twitterConfig.VIRTUALS_ACP_BUYER_WALLET_ADDRESS) {
         elizaLogger.error("[Virtuals ACP] VIRTUALS_ACP_WALLET_ADDRESS is not set");
         return { acpClient: null, jobId: null, AcpJobPhases: null, sellerResponse: "" };
     }
-    if (!twitterConfig.VIRTUALS_ACP_ENTITY_ID) {
+    if (!twitterConfig.VIRTUALS_ACP_BUYER_ENTITY_ID) {
         elizaLogger.error("[Virtuals ACP] VIRTUALS_ACP_ENTITY_ID is not set");
         return { acpClient: null, jobId: null, AcpJobPhases: null, sellerResponse: "" };
     }
-    if (!twitterConfig.VIRTUALS_ACP_PRIVATE_KEY) {
-        elizaLogger.error("[Virtuals ACP] VIRTUALS_ACP_PRIVATE_KEY is not set");
+    if (!twitterConfig.VIRTUALS_ACP_BUYER_PRIVATE_KEY) {
+        elizaLogger.error("[Virtuals ACP] VIRTUALS_ACP_BUYER_PRIVATE_KEY is not set");
         return { acpClient: null, jobId: null, AcpJobPhases: null, sellerResponse: "" };
     }
 
@@ -391,9 +391,9 @@ async function buyACPService(twitterConfig: TwitterConfig, agentFilterKeyword: s
 
         const acpClient = new AcpClient({
             acpContractClient: await AcpContractClient.build(
-                twitterConfig.VIRTUALS_ACP_PRIVATE_KEY as Address,
-                twitterConfig.VIRTUALS_ACP_ENTITY_ID,
-                twitterConfig.VIRTUALS_ACP_WALLET_ADDRESS as Address,
+                twitterConfig.VIRTUALS_ACP_BUYER_PRIVATE_KEY as Address,
+                twitterConfig.VIRTUALS_ACP_BUYER_ENTITY_ID,
+                twitterConfig.VIRTUALS_ACP_BUYER_WALLET_ADDRESS as Address,
                 baseAcpConfig,
             ),
             onNewTask: async (job: any) => {
@@ -488,7 +488,7 @@ async function buyACPService(twitterConfig: TwitterConfig, agentFilterKeyword: s
             try {
                 jobId = await chosenJobOffering.initiateJob(
                     jobRequirementObject,
-                    twitterConfig.VIRTUALS_ACP_WALLET_ADDRESS as Address,// Use default evaluator address
+                    twitterConfig.VIRTUALS_ACP_BUYER_WALLET_ADDRESS as Address,// Use default evaluator address
                     new Date(Date.now() + 1000 * 60 * 60 * 24), // expiredAt as last parameter
                 );
             } catch (error) {

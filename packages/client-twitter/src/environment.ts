@@ -86,9 +86,9 @@ export const twitterEnvSchema = z.object({
     ENABLE_CARV_DATA: z.boolean(),
     ENABLE_TWEET_FORMATTING: z.boolean(),
     ENABLE_VIRTUALS_ACP: z.boolean(),
-    VIRTUALS_ACP_WALLET_ADDRESS: z.string(),
-    VIRTUALS_ACP_ENTITY_ID: z.number().int(),
-    VIRTUALS_ACP_PRIVATE_KEY: z.string(),
+    VIRTUALS_ACP_BUYER_WALLET_ADDRESS: z.string(),
+    VIRTUALS_ACP_BUYER_ENTITY_ID: z.number().int(),
+    VIRTUALS_ACP_BUYER_PRIVATE_KEY: z.string(),
 });
 
 export type TwitterConfig = z.infer<typeof twitterEnvSchema>;
@@ -300,19 +300,19 @@ export async function validateTwitterConfig(
                     process.env.ENABLE_VIRTUALS_ACP
                 ) ?? false,
 
-            VIRTUALS_ACP_WALLET_ADDRESS:
-                runtime.getSetting("VIRTUALS_ACP_WALLET_ADDRESS") ||
-                process.env.VIRTUALS_ACP_WALLET_ADDRESS,
+            VIRTUALS_ACP_BUYER_WALLET_ADDRESS:
+                runtime.getSetting("VIRTUALS_ACP_BUYER_WALLET_ADDRESS") ||
+                process.env.VIRTUALS_ACP_BUYER_WALLET_ADDRESS,
 
-            VIRTUALS_ACP_ENTITY_ID: safeParseInt(
-                runtime.getSetting("VIRTUALS_ACP_ENTITY_ID") ||
-                process.env.VIRTUALS_ACP_ENTITY_ID,
+            VIRTUALS_ACP_BUYER_ENTITY_ID: safeParseInt(
+                runtime.getSetting("VIRTUALS_ACP_BUYER_ENTITY_ID") ||
+                process.env.VIRTUALS_ACP_BUYER_ENTITY_ID,
                 0
             ),
 
-            VIRTUALS_ACP_PRIVATE_KEY:
-                runtime.getSetting("VIRTUALS_ACP_PRIVATE_KEY") ||
-                process.env.VIRTUALS_ACP_PRIVATE_KEY,
+            VIRTUALS_ACP_BUYER_PRIVATE_KEY:
+                runtime.getSetting("VIRTUALS_ACP_BUYER_PRIVATE_KEY") ||
+                process.env.VIRTUALS_ACP_BUYER_PRIVATE_KEY,
         };
 
         return twitterEnvSchema.parse(twitterConfig);
