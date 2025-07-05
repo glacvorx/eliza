@@ -21,7 +21,7 @@ import type { ClientBase } from "./base";
 import { buildConversationThread, sendTweet, wait } from "./utils.ts";
 import { processCARVData } from "./carvDATA.ts";
 import { formatTweetUsingTemplate } from "./formatting.ts";
-import { processVirtualsACP } from "./virtualsACP.ts";
+import { processVirtualsACP, type ACPAgentDetails } from "./virtualsACP.ts";
 
 /**
  * Template used to generate the actual response content for both replies and mentions.
@@ -67,6 +67,17 @@ Thread of Tweets You Are Replying To:
 # On-Chain Data Insights:
 {{CARVInsights}}
 
+# Response Decision:
+{{shouldRespond}}
+
+# ACP JOB PAYMENT INSTRUCTIONS:
+If the Response Decision is RESPOND_ACP and this is your first reply to a tweet requesting information or a service via the ACP network, you MUST respond with ONLY the following exact format:
+"Your request has been received, to proceed, please send {{ACPPaymentAmount}} $VIRTUAL on Base to {{ACPPaymentAddress}} and reply to this tweet after payment. Thank you."
+
+Do NOT include any other content, context, or information in the response. Do NOT mention the original tweet content, do NOT add commentary, do NOT include character personality or style. The response should be ONLY the payment instruction message above.
+
+Do NOT include payment instructions if this is not the first response to an ACP request (this might be part of a conversation of another previous ACP request), or if the Response Decision is not RESPOND_ACP.
+
 # ACP Job Status and Seller Response:
 {{ACPJobStatus}}
 
@@ -82,22 +93,26 @@ IMPORTANT FORMATTING RULES:
 If the on-chain data insights above don't contain error messages like "Could not generate analysis" or "Error analyzing", incorporate these blockchain insights into your response - they've been deemed relevant to this conversation. Integrate the insights naturally while maintaining {{agentName}}'s voice and conversational tone.
 
 ACP JOB INTEGRATION INSTRUCTIONS:
-- If ACPJobStatus contains a seller response (look for "Seller Response:" in the text), incorporate that response naturally into your reply. PRESERVE ALL DETAILS, STATISTICS, AND ANALYSIS from the seller response - do not summarize or condense the information. The seller response contains valuable work results that should be shared with the user in full detail.
+- If ACP Job Status and Seller Response is empty and the Response Decision is not RESPOND_ACP, ignore ACP-related content in your response. This means no ACP processing was needed or initiated.
+- If the Response Decision is RESPOND_ACP, use ONLY the payment instruction format specified above. Do NOT incorporate any ACP Job Status and Seller Response content into the response.
+- CRITICAL ERROR HANDLING: If ACP Job Status and Seller Response contains ANY error messages (including but not limited to "Error:", "Failed:", "No suitable agents found", "No offerings available", "Schema validation failed", "Job failed", "Job monitoring timeout", "Error processing ACP job:", "Error processing payment confirmation:", "Error creating ACP client", "Error searching for agents", "Agent not found", "No offerings available for agent", "Error initiating ACP job", "Failed to retrieve agent or initiate job", "No agent details found", or any other error indicators), completely ignore ACP-related content in your response and do not mention ACP at all. Respond as if ACP was never mentioned. DO NOT acknowledge payment, DO NOT mention job completion, DO NOT reference any ACP-related information.
+- If the Response Decision is RESPOND_PAYMENT_CONFIRMED and ACP Job Status and Seller Response contains a seller response (look for "Seller Response:" in the text), incorporate that response naturally into your reply. PRESERVE ALL DETAILS, STATISTICS, AND ANALYSIS from the seller response - do not summarize or condense the information. The seller response contains valuable work results that should be shared with the user in full detail. DO NOT add phrases like "job completed successfully" or any other job completion language - simply present the seller response content directly.
 - CRITICAL: When seller responses contain multiple tokens/items, you MUST include ALL tokens/items mentioned in the response. Do not pick and choose - include every single one with their key details.
 - For each token/item in the seller response, include: token name/ticker, score, key rationale, and most relevant summary points. Do not omit any tokens from the response.
 - If the seller response contains detailed JSON data with multiple entries, parse and include ALL entries with their respective details (scores, rationales, summaries, etc.).
-- If ACPJobStatus indicates a job was completed with a success response (look for "Job completed successfully" or similar), acknowledge the completion and mention that the job was processed successfully.
-- If ACPJobStatus shows no job was initiated (empty string), you can ignore ACP-related content in your response.
-- If ACPJobStatus contains error messages like "No suitable agents found", "service unavailable", "Error:", "Failed:", "Schema validation failed", "Job is in progress", "Job is still in progress", "Job monitoring timeout", or any other error indicators or uncertain status messages, completely ignore ACP-related content in your response and do not mention ACP at all.
+- If the Response Decision is RESPOND_PAYMENT_CONFIRMED and ACP Job Status and Seller Response indicates a job was completed with a success response (look for "Payment received! Job completed successfully" or "Job completed successfully"), DO NOT mention job completion or success. Simply present the seller response content directly without any acknowledgment of job completion.
+- PAYMENT FAILURE HANDLING: If the Response Decision is RESPOND_PAYMENT_CONFIRMED and ACP Job Status and Seller Response contains payment failure messages (look for "Payment not received" or "Please send [amount] $VIRTUAL on Base to [address] and reply to this tweet again"), you MUST respond with ONLY the following exact format:
+"Apologies, the payment was not received. Please send the tokens on Base and reply to this tweet once you've sent it. Thank you!"
 - Always maintain {{agentName}}'s voice and style when incorporating ACP information.
-- Remember that ACP jobs will always have a response - either immediate data, success confirmation, or status updates. The response will be available in the ACPJobStatus field.
+- Remember that ACP jobs will always have a response - either initial payment instructions, seller response data, success confirmation, payment failure messages, or empty string (no ACP processing). The response will be available in the ACP Job Status and Seller Response field.
 - When incorporating seller responses, maintain the agent's conversational tone while preserving all technical details, metrics, and analysis provided by the seller.
-- IMPORTANT: Work within Twitter's 280 character limit while still including ALL tokens/items from the seller response. Use abbreviations and concise language but ensure every token/item is mentioned with their key details.
 
 Here is the current post text again. Remember to include an action if the current post text includes a prompt that asks for one of the available actions mentioned above (does not need to be exact)
 {{currentPost}}
 Here is the descriptions of images in the Current post.
 {{imageDescriptions}}
+
+FINAL REMINDER: If ACP Job Status and Seller Response contains ANY error message (starts with "Error:" or contains "Failed:", "No agent details found", etc.), completely ignore all ACP-related content and respond as if the user just sent a normal message without any ACP context.
 ` + messageCompletionFooter;
 
 /**
@@ -113,11 +128,26 @@ Here is the descriptions of images in the Current post.
  * - Conversation context
  * - Direct addressing
  * @param targetUsersStr Comma-separated list of priority Twitter usernames to always respond to
+ * 
+ * Temporarily disabled CARV/Onchain data considerations
+BLOCKCHAIN/ONCHAIN DATA CONSIDERATIONS:
+- {{agentName}} should RESPOND to questions about onchain data or blockchain analytics
+- {{agentName}} should RESPOND when the tweet mentions specific blockchain addresses, transactions, or tokens
+- {{agentName}} should RESPOND to questions about on-chain activity, wallet balances, or transaction history
+- {{agentName}} should RESPOND to discussions about blockchain trends where on-chain data analysis would be valuable
+- {{agentName}} should RESPOND when a tweet references a specific Twitter user whose on-chain activities could be relevant
+- {{agentName}} should RESPOND to mentions of Ethereum, Bitcoin, Solana, or other blockchain data that could be queried
+- {{agentName}} may still IGNORE general crypto discussions without specific on-chain data needs
+- {{agentName}} may still IGNORE non-technical topics where blockchain data adds little value
  */
 export const twitterShouldRespondTemplate = (targetUsersStr: string) =>
-    `# INSTRUCTIONS: Determine if {{agentName}} (@{{twitterUserName}}) should respond to the message and participate in the conversation. Do not comment. Just respond with "true" or "false".
+    `# INSTRUCTIONS: Determine if {{agentName}} (@{{twitterUserName}}) should respond to the message and participate in the conversation. Do not comment. Just respond with one of the following options:
 
-Response options are RESPOND, IGNORE and STOP.
+- [RESPOND]: Respond to the tweet as usual.
+- [RESPOND_ACP]: Respond to the tweet and indicate that an ACP (Agent Commerce Protocol) service is required for the next step (i.e., the tweet requests a service/information that can be accomplished by the ACP agent network).
+- [RESPOND_PAYMENT_CONFIRMED]: Respond to the tweet indicating that the user has confirmed payment has been made for a previous ACP request.
+- [IGNORE]: Skip this interaction.
+- [STOP]: Stop participating in this conversation.
 
 PRIORITY RULE: ALWAYS RESPOND to these users regardless of topic or message content: ${targetUsersStr}. Topic relevance should be ignored for these users.
 
@@ -130,15 +160,33 @@ For other users:
 - {{agentName}} should STOP if conversation is concluded
 - {{agentName}} is in a room with other users and wants to be conversational, but not annoying.
 
-BLOCKCHAIN/ONCHAIN DATA CONSIDERATIONS:
-- {{agentName}} should RESPOND to questions about onchain data or blockchain analytics
-- {{agentName}} should RESPOND when the tweet mentions specific blockchain addresses, transactions, or tokens
-- {{agentName}} should RESPOND to questions about on-chain activity, wallet balances, or transaction history
-- {{agentName}} should RESPOND to discussions about blockchain trends where on-chain data analysis would be valuable
-- {{agentName}} should RESPOND when a tweet references a specific Twitter user whose on-chain activities could be relevant
-- {{agentName}} should RESPOND to mentions of Ethereum, Bitcoin, Solana, or other blockchain data that could be queried
-- {{agentName}} may still IGNORE general crypto discussions without specific on-chain data needs
-- {{agentName}} may still IGNORE non-technical topics where blockchain data adds little value
+# ACP SERVICE DETECTION:
+If the tweet requests a service or information that can be accomplished by the network of agents in the ACP (Agent Commerce Protocol) network, respond with [RESPOND_ACP].
+
+The ACP network offers a wide variety of services, including but not limited to:
+- Authenticate NFT on Story Protocol
+- Smart contract analysis
+- Get market alpha/insights/reports/analysis
+- Trading signal validation
+- Creating cinematic videos
+- Creating and training community manager agents
+- Smart contract audit
+- Token audit
+- Song generation
+- Content generation
+
+If the tweet requests any of these services, or any other service that could be fulfilled by an agent in the ACP network, respond with [RESPOND_ACP].
+
+If the tweet does not request such a service, but should otherwise be responded to, respond with [RESPOND].
+
+# ACP PAYMENT CONFIRMATION DETECTION:
+If this tweet appears to be a reply to a previous ACP payment request and contains payment confirmation language, respond with [RESPOND_PAYMENT_CONFIRMED]. Look for phrases like:
+- "sent", "paid", "payment sent", "done", "completed", "finished", "submitted", "transferred"
+- "sent the payment", "paid the fee", "sent the virtuals", "payment done", "transaction sent"
+- "i sent it", "payment completed", "transaction done", "money sent", "fee paid"
+- Any confirmation that payment has been made
+
+The tweet must be replying to a tweet that contains ACP payment instructions (look for mentions of $VIRTUAL, Base chain, or payment addresses) to qualify as a payment confirmation.
 
 IMPORTANT:
 - {{agentName}} (aka @{{twitterUserName}}) is particularly sensitive about being annoying, so if there is any doubt, it is better to IGNORE than to RESPOND.
@@ -153,7 +201,7 @@ Current Post:
 Thread of Tweets You Are Replying To:
 {{formattedConversation}}
 
-# INSTRUCTIONS: Respond with [RESPOND] if {{agentName}} should respond, or [IGNORE] if {{agentName}} should not respond to the last message and [STOP] if {{agentName}} should stop participating in the conversation.
+# INSTRUCTIONS: Respond with [RESPOND_ACP] if the tweet requests a service/information that can be accomplished by the ACP agent network, [RESPOND_PAYMENT_CONFIRMED] if the user has confirmed payment for a previous ACP request, [RESPOND] if a normal response is appropriate, [IGNORE] if no response is needed, or [STOP] if participation should end.
 ` + shouldRespondFooter;
 
 export class TwitterInteractionClient {
@@ -496,7 +544,7 @@ export class TwitterInteractionClient {
         });
 
         // Promise<"RESPOND" | "IGNORE" | "STOP" | null> {
-        if (shouldRespond !== "RESPOND") {
+        if (shouldRespond !== "RESPOND" && shouldRespond !== "RESPOND_ACP" && shouldRespond !== "RESPOND_PAYMENT_CONFIRMED") {
             elizaLogger.log("Not responding to message");
             return { text: "Response Decision:", action: shouldRespond };
         }
@@ -525,16 +573,22 @@ export class TwitterInteractionClient {
         }
 
         let ACPJobStatus = "";
-        if (this.client.twitterConfig.ENABLE_VIRTUALS_ACP) {
-            ACPJobStatus = await processVirtualsACP(
+        let ACPPaymentAmount = 0;
+        if (this.client.twitterConfig.ENABLE_VIRTUALS_ACP && (shouldRespond === "RESPOND_ACP" || shouldRespond === "RESPOND_PAYMENT_CONFIRMED")) {
+            elizaLogger.debug(`[Virtuals ACP] Tweet: ${tweet.text} shouldRespond: ${shouldRespond}`);
+
+            const acpResult = await processVirtualsACP(
                 this.runtime,
                 this.client.twitterConfig.TWITTER_USERNAME,
                 tweet,
                 formattedConversation,
                 imageDescriptionsArray.map(desc => desc.description || "No description"),
                 quotedContent,
-                this.client.twitterConfig
+                this.client.twitterConfig,
+                shouldRespond
             );
+            ACPJobStatus = acpResult.sellerResponse;
+            ACPPaymentAmount = acpResult.ACPPaymentAmount;
         }
 
         const context = composeContext({
@@ -542,6 +596,11 @@ export class TwitterInteractionClient {
                 ...state,
                 // Add CARV insights to the context
                 CARVInsights: CARVInsights,
+                // Add the response decision to the context
+                shouldRespond: shouldRespond,
+                // Add the ACP buyer agent wallet address to the context
+                ACPPaymentAddress: this.client.twitterConfig.VIRTUALS_ACP_BUYER_WALLET_ADDRESS,
+                ACPPaymentAmount: ACPPaymentAmount,
                 // Add ACP seller response to the context (includes job status and any seller response)
                 ACPJobStatus: ACPJobStatus,
                 // Convert actionNames array to string

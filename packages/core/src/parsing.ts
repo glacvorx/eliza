@@ -16,22 +16,26 @@ Your response must include one of the options.`;
 
 export const parseShouldRespondFromText = (
     text: string
-): "RESPOND" | "IGNORE" | "STOP" | null => {
+): "RESPOND" | "IGNORE" | "STOP" | "RESPOND_ACP" | "RESPOND_PAYMENT_CONFIRMED" | null => {
     const match = text
         .split("\n")[0]
         .trim()
         .replace("[", "")
         .toUpperCase()
         .replace("]", "")
-        .match(/^(RESPOND|IGNORE|STOP)$/i);
+        .match(/^(RESPOND|IGNORE|STOP|RESPOND_ACP|RESPOND_PAYMENT_CONFIRMED)$/i);
     return match
-        ? (match[0].toUpperCase() as "RESPOND" | "IGNORE" | "STOP")
+        ? (match[0].toUpperCase() as "RESPOND" | "IGNORE" | "STOP" | "RESPOND_ACP" | "RESPOND_PAYMENT_CONFIRMED")
         : text.includes("RESPOND")
         ? "RESPOND"
         : text.includes("IGNORE")
         ? "IGNORE"
         : text.includes("STOP")
         ? "STOP"
+        : text.includes("RESPOND_ACP")
+        ? "RESPOND_ACP"
+        : text.includes("RESPOND_PAYMENT_CONFIRMED")
+        ? "RESPOND_PAYMENT_CONFIRMED"
         : null;
 };
 

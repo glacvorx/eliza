@@ -1326,7 +1326,7 @@ export async function generateShouldRespond({
     runtime: IAgentRuntime;
     context: string;
     modelClass: ModelClass;
-}): Promise<"RESPOND" | "IGNORE" | "STOP" | null> {
+}): Promise<"RESPOND" | "IGNORE" | "STOP" | "RESPOND_ACP" | "RESPOND_PAYMENT_CONFIRMED" | null> {
     let retryDelay = 1000;
     while (true) {
         try {
