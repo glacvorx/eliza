@@ -52,7 +52,8 @@ jobs:
           [ "${{ inputs.update-code }}" = true ] && git pull
 
           pnpm build
-          pnpm turbo build --filter=@elizaos/client-twitter --filter=@elizaos/plugin-d.a.t.a
+          # pnpm turbo build --filter=@elizaos/client-twitter --filter=@elizaos/plugin-d.a.t.a
+          pnpm turbo build --filter=@elizaos/client-twitter
 
           sudo systemctl restart ${{ secrets.SERVICE_FILE }}
 
