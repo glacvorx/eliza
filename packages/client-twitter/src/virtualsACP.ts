@@ -1167,7 +1167,7 @@ export async function initializeACPServiceProvider(twitterConfig: TwitterConfig,
                                     timestamp: new Date().toISOString(),
                                     service: "twitter_content_generation"
                                 });
-                                elizaLogger.log(`[Virtuals ACP] Generated tweet content for job ${String(job.id)} (attempt ${attempt}):`, tweetContent.tweetText.substring(0, 100) + "...");
+                                elizaLogger.log(`[Virtuals ACP] Generated tweet content for job ${String(job.id)} (attempt ${attempt}):`, tweetContent.tweetText);
                                 break;
                             } catch (tweetError) {
                                 lastError = tweetError;
