@@ -92,6 +92,7 @@ export const twitterEnvSchema = z.object({
     VIRTUALS_ACP_SELLER_WALLET_ADDRESS: z.string(),
     VIRTUALS_ACP_SELLER_ENTITY_ID: z.number().int(),
     VIRTUALS_ACP_SELLER_PRIVATE_KEY: z.string(),
+    ARBUS_API_KEY: z.string(),
 });
 
 export type TwitterConfig = z.infer<typeof twitterEnvSchema>;
@@ -330,6 +331,10 @@ export async function validateTwitterConfig(
             VIRTUALS_ACP_SELLER_PRIVATE_KEY:
                 runtime.getSetting("VIRTUALS_ACP_SELLER_PRIVATE_KEY") ||
                 process.env.VIRTUALS_ACP_SELLER_PRIVATE_KEY,
+
+            ARBUS_API_KEY:
+                runtime.getSetting("ARBUS_API_KEY") ||
+                process.env.ARBUS_API_KEY,
         };
 
         return twitterEnvSchema.parse(twitterConfig);

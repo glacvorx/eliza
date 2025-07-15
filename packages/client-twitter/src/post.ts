@@ -112,14 +112,7 @@ interface PendingTweet {
 
 type PendingTweetApprovalStatus = "PENDING" | "APPROVED" | "REJECTED";
 
-/**
- * Minimal interface for tweet generation to avoid circular references
- */
-export interface ITweetGenerator {
-    generateTweetForACP(): Promise<{ tweetText: string; rawTweetContent: string; mediaData?: MediaData[] }>;
-}
-
-export class TwitterPostClient implements ITweetGenerator {
+export class TwitterPostClient {
     client: ClientBase;
     runtime: IAgentRuntime;
     twitterUsername: string;
@@ -331,7 +324,7 @@ export class TwitterPostClient implements ITweetGenerator {
         if (this.client.twitterConfig.ENABLE_VIRTUALS_ACP) {
             elizaLogger.log("[Virtuals ACP] Initializing ACP service provider...");
             try {
-                this.acpServiceProvider = await initializeACPServiceProvider(this.client.twitterConfig, this);
+                this.acpServiceProvider = await initializeACPServiceProvider(this.client.twitterConfig);
                 elizaLogger.log("[Virtuals ACP] Service provider initialized successfully and listening for job requests");
             } catch (error) {
                 elizaLogger.error("[Virtuals ACP] Error initializing service provider:", error);
@@ -604,10 +597,10 @@ export class TwitterPostClient implements ITweetGenerator {
     }
 
     /**
-     * Generates tweet content without posting it. Returns the cleaned and formatted tweet text.
+     * Generates and posts a new tweet. If isDryRun is true, only logs what would have been posted.
      */
-    public async generateTweetContentOnly(): Promise<{ tweetText: string; rawTweetContent: string; mediaData?: MediaData[] }> {
-        elizaLogger.log("Generating tweet content");
+    async generateNewTweet() {
+        elizaLogger.log("Generating new tweet");
 
         try {
             const roomId = stringToUuid(
@@ -756,31 +749,6 @@ export class TwitterPostClient implements ITweetGenerator {
                 fixNewLines(tweetTextForPosting)
             );
 
-            return {
-                tweetText: tweetTextForPosting,
-                rawTweetContent: rawTweetContent,
-                mediaData: mediaData
-            };
-        } catch (error) {
-            elizaLogger.error("Error generating tweet content:", error);
-            throw error;
-        }
-    }
-
-    /**
-     * Generates and posts a new tweet. If isDryRun is true, only logs what would have been posted.
-     */
-    async generateNewTweet() {
-        elizaLogger.log("Generating new tweet");
-
-        try {
-            const roomId = stringToUuid(
-                "twitter_generate_room-" + this.client.profile.username
-            );
-
-            // Generate tweet content using the new reusable function
-            const { tweetText: tweetTextForPosting, rawTweetContent, mediaData } = await this.generateTweetContentOnly();
-
             if (this.isDryRun) {
                 elizaLogger.info(
                     `Dry run: would have posted tweet: ${tweetTextForPosting}`
@@ -820,13 +788,6 @@ export class TwitterPostClient implements ITweetGenerator {
         } catch (error) {
             elizaLogger.error("Error generating new tweet:", error);
         }
-    }
-
-    /**
-     * Implementation of ITweetGenerator interface for ACP service
-     */
-    public async generateTweetForACP(): Promise<{ tweetText: string; rawTweetContent: string; mediaData?: MediaData[] }> {
-        return this.generateTweetContentOnly();
     }
 
     private async generateTweetContent(

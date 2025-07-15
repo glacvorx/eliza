@@ -2,7 +2,6 @@ import { elizaLogger, IAgentRuntime, stringToUuid, generateText, ModelClass, com
 import { TwitterConfig } from "./environment";
 import { Address } from '@aa-sdk/core';
 import { Tweet } from "agent-twitter-client";
-import { ITweetGenerator } from "./post.ts";
 import { parseUnits } from "viem";
 
 /**
@@ -1098,10 +1097,41 @@ async function buyACPServiceWithStoredAgent(
     }
 }
 
+async function fetchArbusApi(apiKey: string, query: string, days: number = 45, maxAttempts: number = 5, retryDelay: number = 2000): Promise<any> {
+    let lastError: any = null;
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        try {
+            const response = await fetch(`https://api.arbus.ai/v1/ask-ai-assistant?key=${apiKey}`,
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query, days })
+                }
+            );
+            if (!response.ok) {
+                throw new Error(`Arbus API request failed: ${response.status} ${response.statusText}`);
+            }
+            const data = await response.json();
+            if (data && data.response) {
+                return data;
+            } else {
+                throw new Error("No valid response from Arbus API");
+            }
+        } catch (error) {
+            lastError = error;
+            elizaLogger.error(`[Virtuals ACP] Error fetching from Arbus API (attempt ${attempt}):`, error);
+            if (attempt < maxAttempts) {
+                await new Promise(res => setTimeout(res, retryDelay));
+            }
+        }
+    }
+    throw lastError || new Error("Failed to fetch from Arbus API after retries");
+}
+
 /**
  * Creates and configures an ACP service provider for providing services
  */
-export async function initializeACPServiceProvider(twitterConfig: TwitterConfig, tweetGenerator?: ITweetGenerator): Promise<any> {
+export async function initializeACPServiceProvider(twitterConfig: TwitterConfig): Promise<any> {
     if (!twitterConfig.VIRTUALS_ACP_SELLER_WALLET_ADDRESS) {
         elizaLogger.error("[Virtuals ACP] VIRTUALS_ACP_SELLER_WALLET_ADDRESS is not set");
         return null;
@@ -1112,6 +1142,10 @@ export async function initializeACPServiceProvider(twitterConfig: TwitterConfig,
     }
     if (!twitterConfig.VIRTUALS_ACP_SELLER_PRIVATE_KEY) {
         elizaLogger.error("[Virtuals ACP] VIRTUALS_ACP_SELLER_PRIVATE_KEY is not set");
+        return null;
+    }
+    if (!twitterConfig.ARBUS_API_KEY) {
+        elizaLogger.error("[Virtuals ACP] ARBUS_API_KEY is not set");
         return null;
     }
 
@@ -1152,40 +1186,36 @@ export async function initializeACPServiceProvider(twitterConfig: TwitterConfig,
                     job.memos.find((m: any) => m.nextPhase === AcpJobPhases.EVALUATION)
                 ) {
                     elizaLogger.log("[Virtuals ACP] Delivering job", String(job.id));
+                    let serviceResult: string | undefined = undefined;
                     try {
-                        let serviceResult: string | undefined = undefined;
-                        let tweetContent: any = undefined;
-                        let lastError: any = undefined;
-                        let maxAttempts = 5;
-                        for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-                            try {
-                                tweetContent = await tweetGenerator.generateTweetForACP();
-                                serviceResult = JSON.stringify({
-                                    type: "tweet_content",
-                                    content: tweetContent.tweetText,
-                                    rawContent: tweetContent.rawTweetContent,
-                                    timestamp: new Date().toISOString(),
-                                    service: "twitter_content_generation"
-                                });
-                                elizaLogger.log(`[Virtuals ACP] Generated tweet content for job ${String(job.id)} (attempt ${attempt}):`, tweetContent.tweetText);
-                                break;
-                            } catch (tweetError) {
-                                lastError = tweetError;
-                                elizaLogger.error(`[Virtuals ACP] Error generating tweet content for job ${String(job.id)} (attempt ${attempt}):`, tweetError);
-                                if (attempt < maxAttempts) {
-                                    await new Promise(res => setTimeout(res, 2000)); // 2 second delay between attempts
-                                }
-                            }
-                        }
-                        if (serviceResult) {
+                        // Randomly pick one of two preset queries for the API
+                        const queries = [
+                            "what are the most promising project launches in gamefi that i should be looking out for in the upcoming months?",
+                            "what are some of the latest news or insights in the web3 gaming or gamefi space?"
+                        ];
+                        const query = queries[Math.floor(Math.random() * queries.length)];
+                        const arbusData = await fetchArbusApi(twitterConfig.ARBUS_API_KEY, query);
+                        serviceResult = JSON.stringify({
+                            type: "arbus_api_response",
+                            content: arbusData.response,
+                            query: arbusData.query,
+                            days: arbusData.days,
+                            timestamp: arbusData.timestamp || new Date().toISOString(),
+                            service: "arbus_ai_assistant"
+                        });
+                        elizaLogger.debug(`[Virtuals ACP] Got Arbus API response for job ${String(job.id)}:`, arbusData.response);
+                    } catch (apiError) {
+                        elizaLogger.error(`[Virtuals ACP] Error fetching Arbus API for job ${String(job.id)}:`, apiError);
+                    }
+                    if (serviceResult) {
+                        try {
                             await job.deliver(serviceResult);
                             elizaLogger.log(`[Virtuals ACP] Job ${String(job.id)} delivered successfully`);
-                        } else {
-                            elizaLogger.error(`[Virtuals ACP] Failed to generate tweet content for job ${String(job.id)} after 5 attempts. Not delivering job.`);
-                            // Do not deliver if we cannot generate after retries
+                        } catch (deliverError) {
+                            elizaLogger.error(`[Virtuals ACP] Error delivering job ${String(job.id)}:`, deliverError);
                         }
-                    } catch (error) {
-                        elizaLogger.error(`[Virtuals ACP] Error delivering job ${String(job.id)}:`, error);
+                    } else {
+                        elizaLogger.error(`[Virtuals ACP] Failed to get Arbus API response for job ${String(job.id)}. Not delivering job.`);
                     }
                 }
             },
