@@ -144,7 +144,7 @@ export const twitterShouldRespondTemplate = (targetUsersStr: string) =>
     `# INSTRUCTIONS: Determine if {{agentName}} (@{{twitterUserName}}) should respond to the message and participate in the conversation. Do not comment. Just respond with one of the following options:
 
 - [RESPOND]: Respond to the tweet as usual.
-- [RESPOND_ACP]: Respond to the tweet and indicate that an ACP (Agent Commerce Protocol) service is required for the next step (i.e., the tweet requests a service/information that can be accomplished by the ACP agent network).
+- [RESPOND_ACP]: Respond to the tweet and indicate that an ACP (Agent Commerce Protocol) service is required for the next step (i.e., the tweet requests a service/information or content that can be accomplished by the ACP agent network).
 - [RESPOND_PAYMENT_CONFIRMED]: Respond to the tweet indicating that the user has confirmed payment has been made for a previous ACP request.
 - [IGNORE]: Skip this interaction.
 - [STOP]: Stop participating in this conversation.
@@ -161,7 +161,7 @@ For other users:
 - {{agentName}} is in a room with other users and wants to be conversational, but not annoying.
 
 # ACP SERVICE DETECTION:
-If the tweet requests a service or information that can be accomplished by the network of agents in the ACP (Agent Commerce Protocol) network, respond with [RESPOND_ACP].
+If the tweet requests a service, information, or content that can be accomplished by the network of agents in the ACP (Agent Commerce Protocol) network, respond with [RESPOND_ACP].
 
 The ACP network offers a wide variety of services, including but not limited to:
 - Authenticate NFT on Story Protocol
@@ -173,9 +173,11 @@ The ACP network offers a wide variety of services, including but not limited to:
 - Smart contract audit
 - Token audit
 - Song generation
-- Content generation
+- Content generation (including newsletters, reports, summaries, research, and similar requests)
+- Automated research and information gathering
+- Generating newsletters or summaries of news/events (e.g., "Could you create a newsletter for me, covering the top 3 news on web3 gaming that happened on July?")
 
-If the tweet requests any of these services, or any other service that could be fulfilled by an agent in the ACP network, respond with [RESPOND_ACP].
+If the tweet requests any of these services, or any other service, information, or content that could be fulfilled by an agent in the ACP network, respond with [RESPOND_ACP].
 
 If the tweet does not request such a service, but should otherwise be responded to, respond with [RESPOND].
 
@@ -188,10 +190,6 @@ If this tweet appears to be a reply to a previous ACP payment request and contai
 
 The tweet must be replying to a tweet that contains ACP payment instructions (look for mentions of $VIRTUAL, Base chain, or payment addresses) to qualify as a payment confirmation.
 
-IMPORTANT:
-- {{agentName}} (aka @{{twitterUserName}}) is particularly sensitive about being annoying, so if there is any doubt, it is better to IGNORE than to RESPOND.
-- For users not in the priority list, {{agentName}} (@{{twitterUserName}}) should err on the side of IGNORE rather than RESPOND if in doubt.
-
 Recent Posts:
 {{recentPosts}}
 
@@ -201,7 +199,7 @@ Current Post:
 Thread of Tweets You Are Replying To:
 {{formattedConversation}}
 
-# INSTRUCTIONS: Respond with [RESPOND_ACP] if the tweet requests a service/information that can be accomplished by the ACP agent network, [RESPOND_PAYMENT_CONFIRMED] if the user has confirmed payment for a previous ACP request, [RESPOND] if a normal response is appropriate, [IGNORE] if no response is needed, or [STOP] if participation should end.
+# INSTRUCTIONS: Respond with [RESPOND_ACP] if the tweet requests a service/information/content that can be accomplished by the ACP agent network, [RESPOND_PAYMENT_CONFIRMED] if the user has confirmed payment for a previous ACP request, [RESPOND] if a normal response is appropriate, [IGNORE] if no response is needed, or [STOP] if participation should end.
 ` + shouldRespondFooter;
 
 export class TwitterInteractionClient {
