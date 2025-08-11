@@ -402,13 +402,15 @@ export interface ACPAgentDetails {
     offeringSchema?: any;
     offeringPrice: number;
     price: number;
+    jobRequirement: string;
     keyword: string;
     requirement: any;
     status: 'pending_payment' | 'paid' | 'completed' | 'failed';
+    isSelfRespondACP: boolean;
     createdAt: number;
 }
 
-async function searchACPAgent(twitterConfig: TwitterConfig, agentFilterKeyword: string, jobRequirement: string, runtime: IAgentRuntime): Promise<{ agentDetails: ACPAgentDetails | null; error?: string }> {
+async function searchACPAgent(twitterConfig: TwitterConfig, agentFilterKeyword: string, jobRequirement: string, runtime: IAgentRuntime, isSelfRespondACP: boolean): Promise<{ agentDetails: ACPAgentDetails | null; error?: string }> {
     try {
         // Dynamic import to avoid constructor issues
         const AcpModule = await import("@virtuals-protocol/acp-node");
@@ -426,71 +428,96 @@ async function searchACPAgent(twitterConfig: TwitterConfig, agentFilterKeyword: 
             ),
         });
 
-        // Browse available agents based on a keyword and cluster name
-        try {
-            elizaLogger.debug("[Virtuals ACP] Browsing agents...");
-            const relevantAgents = await acpClient.browseAgents(
-                agentFilterKeyword,
-                "",
-                [AcpAgentSort.SUCCESSFUL_JOB_COUNT, AcpAgentSort.IS_ONLINE],
-                true,
-                5
-            );
-            if (relevantAgents.length === 0) {
-                elizaLogger.warn("[Virtuals ACP] No relevant agents found");
-                return { agentDetails: null, error: "No suitable agents found for your request." };
-            }
-            const chosenAgent = relevantAgents[0];
-            elizaLogger.debug("[Virtuals ACP] Chosen agent:", chosenAgent.name);
-            if (!chosenAgent.offerings || chosenAgent.offerings.length === 0) {
-                elizaLogger.warn("[Virtuals ACP] No offerings available for chosen agent");
-                return { agentDetails: null, error: "No offerings available for the selected agent." };
-            }
-            const chosenJobOffering = chosenAgent.offerings[0];
-            elizaLogger.debug("[Virtuals ACP] Chosen job offering:", chosenJobOffering.type);
+        let chosenJobOffering: any;
+        let chosenAgent: any;
 
-            // Generate the job requirement object based on the agent's schema
-            let jobRequirementObject: any;
+        // Check if we should use a specific configured agent for SELF_RESPOND_ACP
+        if (isSelfRespondACP) {
             try {
-                jobRequirementObject = await generateJobRequirementObject(jobRequirement, chosenJobOffering, runtime);
-                elizaLogger.debug("[Virtuals ACP] Generated job requirement object:", jobRequirementObject);
+                elizaLogger.debug("[Virtuals ACP] Using configured agent for SELF_RESPOND_ACP...");
+                // Get the agent by wallet address
+                const agent = await acpClient.getAgent(twitterConfig.VIRTUALS_ACP_SELLER_WALLET_ADDRESS as Address);
+                if (!agent || !agent.offerings || agent.offerings.length === 0) {
+                    elizaLogger.warn("[Virtuals ACP] No offerings available for configured agent");
+                    return { agentDetails: null, error: "No offerings available for the configured agent." };
+                }
+                chosenJobOffering = agent.offerings[0];
+                chosenAgent = agent;
+                elizaLogger.debug("[Virtuals ACP] Using configured agent:", agent.name);
+                elizaLogger.debug("[Virtuals ACP] Chosen job offering:", chosenJobOffering.type);
             } catch (error) {
-                elizaLogger.error("[Virtuals ACP] Failed to generate job requirement object:", error);
-                return { 
-                    agentDetails: null, 
-                    error: `${error.message}. Please provide more specific information in your request.`
-                };
+                elizaLogger.error("[Virtuals ACP] Error getting configured agent:", error);
+                return { agentDetails: null, error: "Error accessing configured agent. Please try again." };
             }
-
-            // Generate unique price for this request
-            const uniquePrice = generateUniquePrice(chosenJobOffering.price);
-
-            // Create agent details
-            const agentDetails: ACPAgentDetails = {
-                agentId: chosenAgent.id,
-                agentName: chosenAgent.name,
-                agentAddress: chosenAgent.walletAddress,
-                offeringType: chosenJobOffering.type,
-                offeringSchema: chosenJobOffering.requirementSchema,
-                offeringPrice: chosenJobOffering.price,
-                price: uniquePrice, // Use unique price instead of base price
-                keyword: agentFilterKeyword, // Use the original search keyword instead of non-existent offering keyword
-                requirement: jobRequirementObject,
-                status: "pending_payment",
-                createdAt: Date.now()
-            };
-
-            elizaLogger.log(`[Virtuals ACP] Successfully found agent: ${agentDetails.agentName} with base price: ${chosenJobOffering.price} $VIRTUAL, unique price: ${agentDetails.price} $VIRTUAL`);
-            return { agentDetails };
-        } catch (error) {
-            elizaLogger.error("[Virtuals ACP] Error during agent browsing:", error);
-            if (error instanceof Error) {
-                elizaLogger.error("[Virtuals ACP] Operation error name:", error.name);
-                elizaLogger.error("[Virtuals ACP] Operation error message:", error.message);
-                elizaLogger.error("[Virtuals ACP] Operation error stack:", error.stack);
+        } else {
+            // Browse available agents based on a keyword and cluster name
+            try {
+                elizaLogger.debug("[Virtuals ACP] Browsing agents...");
+                const relevantAgents = await acpClient.browseAgents(
+                    agentFilterKeyword,
+                    "",
+                    [AcpAgentSort.SUCCESSFUL_JOB_COUNT, AcpAgentSort.IS_ONLINE],
+                    true,
+                    5
+                );
+                if (relevantAgents.length === 0) {
+                    elizaLogger.warn("[Virtuals ACP] No relevant agents found");
+                    return { agentDetails: null, error: "No suitable agents found for your request." };
+                }
+                chosenAgent = relevantAgents[0];
+                elizaLogger.debug("[Virtuals ACP] Chosen agent:", chosenAgent.name);
+                if (!chosenAgent.offerings || chosenAgent.offerings.length === 0) {
+                    elizaLogger.warn("[Virtuals ACP] No offerings available for chosen agent");
+                    return { agentDetails: null, error: "No offerings available for the selected agent." };
+                }
+                chosenJobOffering = chosenAgent.offerings[0];
+                elizaLogger.debug("[Virtuals ACP] Chosen job offering:", chosenJobOffering.type);
+            } catch (error) {
+                elizaLogger.error("[Virtuals ACP] Error during agent browsing:", error);
+                if (error instanceof Error) {
+                    elizaLogger.error("[Virtuals ACP] Operation error name:", error.name);
+                    elizaLogger.error("[Virtuals ACP] Operation error message:", error.message);
+                    elizaLogger.error("[Virtuals ACP] Operation error stack:", error.stack);
+                }
+                return { agentDetails: null, error: "Error searching for agents. Please try again." };
             }
-            return { agentDetails: null, error: "Error searching for agents. Please try again." };
         }
+
+        // Generate the job requirement object based on the agent's schema
+        let jobRequirementObject: any;
+        try {
+            jobRequirementObject = await generateJobRequirementObject(jobRequirement, chosenJobOffering, runtime);
+            elizaLogger.debug("[Virtuals ACP] Generated job requirement object:", jobRequirementObject);
+        } catch (error) {
+            elizaLogger.error("[Virtuals ACP] Failed to generate job requirement object:", error);
+            return { 
+                agentDetails: null, 
+                error: `${error.message}. Please provide more specific information in your request.`
+            };
+        }
+
+        // Generate unique price for this request
+        const uniquePrice = generateUniquePrice(chosenJobOffering.price);
+
+        // Create agent details
+        const agentDetails: ACPAgentDetails = {
+            agentId: chosenAgent.id,
+            agentName: chosenAgent.name,
+            agentAddress: chosenAgent.walletAddress,
+            offeringType: chosenJobOffering.type,
+            offeringSchema: chosenJobOffering.requirementSchema,
+            offeringPrice: chosenJobOffering.price,
+            price: uniquePrice, // Use unique price instead of base price
+            jobRequirement: jobRequirement,
+            keyword: agentFilterKeyword, // Use the original search keyword instead of non-existent offering keyword
+            requirement: jobRequirementObject,
+            status: "pending_payment",
+            isSelfRespondACP: isSelfRespondACP,
+            createdAt: Date.now()
+        };
+
+        elizaLogger.log(`[Virtuals ACP] Successfully found agent: ${agentDetails.agentName} with base price: ${chosenJobOffering.price} $VIRTUAL, unique price: ${agentDetails.price} $VIRTUAL`);
+        return { agentDetails };
     } catch (error) {
         elizaLogger.error("[Virtuals ACP] Error creating ACP Client:", error);
         if (error instanceof Error) {
@@ -767,10 +794,14 @@ export async function processVirtualsACP(
         elizaLogger.error("[Virtuals ACP] VIRTUALS_ACP_BUYER_PRIVATE_KEY is not set");
         return { sellerResponse: "Error: ACP private key not configured" };
     }
+    if (!twitterConfig.VIRTUALS_ACP_SELLER_WALLET_ADDRESS) {
+        elizaLogger.error("[Virtuals ACP] VIRTUALS_ACP_SELLER_WALLET_ADDRESS is not set");
+        return { sellerResponse: "Error: ACP seller wallet address not configured" };
+    }
 
     let sellerResponse = "";
     try {
-        if (shouldRespond === "RESPOND_ACP") {
+        if (shouldRespond === "RESPOND_ACP" || shouldRespond === "SELF_RESPOND_ACP") {
             elizaLogger.log(`[Virtuals ACP] Processing RESPOND_ACP for tweet ${tweet.id}: "${tweet.text?.substring(0, 100)}..."`);
 
             // First flow: Search for agent and provide payment instructions
@@ -798,7 +829,7 @@ export async function processVirtualsACP(
                     elizaLogger.log(`[Virtuals ACP] Tweet content: "${tweetText.substring(0, 50)}..."`);
 
                     // 3. Search for ACP agent (first flow - search and store agent details)
-                    const { agentDetails, error } = await searchACPAgent(twitterConfig, shouldUseACP.keyword!, shouldUseACP.requirement!, runtime);
+                    const { agentDetails, error } = await searchACPAgent(twitterConfig, shouldUseACP.keyword!, shouldUseACP.requirement!, runtime, shouldRespond === "SELF_RESPOND_ACP");
 
                     if (agentDetails) {
                         // Store agent details in cache for easy retrieval during payment confirmation
@@ -913,54 +944,72 @@ async function processACPPaymentConfirmation(
             // Update agent status to paid in cache
             await updateACPAgentStatus(runtime, originalTweetId!, 'paid');
 
-            // Buy ACP service using stored agent details
-            const { acpClient, jobId, AcpJobPhases, sellerResponse } = await buyACPServiceWithStoredAgent(
-                twitterConfig,
-                agentDetails
-            );
+            if (agentDetails.isSelfRespondACP) {
+                // Responding using Arbus API flow
+                elizaLogger.log(`[Virtuals ACP] Responding using Arbus API flow for tweet ${originalTweetId}`);
 
-            if (jobId) {
-                // Check for immediate seller response
-                let finalSellerResponse = sellerResponse;
-
-                // If no immediate response, monitor for delayed seller response
-                if (!finalSellerResponse) {
-                    elizaLogger.log(`[Virtuals ACP] No immediate seller response, monitoring for delayed response for job ${jobId}`);
-                    finalSellerResponse = await monitorACPServiceResponse(acpClient, jobId, AcpJobPhases);
-                } else {
-                    elizaLogger.log(`[Virtuals ACP] Immediate seller response received for job ${jobId}`);
-                }
+                const arbusData = await fetchArbusApi(twitterConfig.ARBUS_API_KEY, agentDetails.jobRequirement);
+                elizaLogger.debug('[Virtuals ACP] Got Arbus API response:', arbusData.response);
 
                 // Update agent status to completed in cache
                 await updateACPAgentStatus(runtime, originalTweetId!, 'completed');
 
-                if (finalSellerResponse) {
-                    elizaLogger.log(`[Virtuals ACP] Job completed successfully with response`);
-                    return { 
-                        sellerResponse: `Payment received! Job completed successfully.\n\nSeller Response:\n${finalSellerResponse}`,
-                        success: true 
-                    };
-                } else {
-                    elizaLogger.log(`[Virtuals ACP] Job completed but no seller response received`);
-                    return { 
-                        sellerResponse: `Payment received! Job completed successfully. No additional data provided.`,
-                        success: true 
-                    };
+                return {
+                    sellerResponse: arbusData.response,
+                    success: true
                 }
             } else {
-                elizaLogger.error(`[Virtuals ACP] Failed to initiate job after payment confirmation`);
+                // Regular buy flow
+
+                // Buy ACP service using stored agent details
+                const { acpClient, jobId, AcpJobPhases, sellerResponse } = await buyACPServiceWithStoredAgent(
+                    twitterConfig,
+                    agentDetails
+                );
+
+                if (jobId) {
+                    // Check for immediate seller response
+                    let finalSellerResponse = sellerResponse;
+
+                    // If no immediate response, monitor for delayed seller response
+                    if (!finalSellerResponse) {
+                        elizaLogger.log(`[Virtuals ACP] No immediate seller response, monitoring for delayed response for job ${jobId}`);
+                        finalSellerResponse = await monitorACPServiceResponse(acpClient, jobId, AcpJobPhases);
+                    } else {
+                        elizaLogger.log(`[Virtuals ACP] Immediate seller response received for job ${jobId}`);
+                    }
+
+                    // Update agent status to completed in cache
+                    await updateACPAgentStatus(runtime, originalTweetId!, 'completed');
+
+                    if (finalSellerResponse) {
+                        elizaLogger.log(`[Virtuals ACP] Job completed successfully with response`);
+                        return { 
+                            sellerResponse: `Payment received! Job completed successfully.\n\nSeller Response:\n${finalSellerResponse}`,
+                            success: true 
+                        };
+                    } else {
+                        elizaLogger.log(`[Virtuals ACP] Job completed but no seller response received`);
+                        return { 
+                            sellerResponse: `Payment received! Job completed successfully. No additional data provided.`,
+                            success: true 
+                        };
+                    }
+                } else {
+                    elizaLogger.error(`[Virtuals ACP] Failed to initiate job after payment confirmation`);
+                    return { 
+                        sellerResponse: `Payment received but failed to initiate the job. Please try again or contact support.`,
+                        success: false 
+                    };
+                }
+            }
+            } else {
+                elizaLogger.log(`[Virtuals ACP] Payment not received within timeout period`);
                 return { 
-                    sellerResponse: `Payment received but failed to initiate the job. Please try again or contact support.`,
+                    sellerResponse: `Payment not received. Please send ${agentDetails.price} $VIRTUAL on Base to ${twitterConfig.VIRTUALS_ACP_BUYER_WALLET_ADDRESS} and reply to this tweet again.`,
                     success: false 
                 };
             }
-        } else {
-            elizaLogger.log(`[Virtuals ACP] Payment not received within timeout period`);
-            return { 
-                sellerResponse: `Payment not received. Please send ${agentDetails.price} $VIRTUAL on Base to ${twitterConfig.VIRTUALS_ACP_BUYER_WALLET_ADDRESS} and reply to this tweet again.`,
-                success: false 
-            };
-        }
     } catch (error) {
         elizaLogger.error(`[Virtuals ACP] Error in payment confirmation processing: ${error}`, error);
         return { 

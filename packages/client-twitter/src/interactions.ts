@@ -71,15 +71,17 @@ Thread of Tweets You Are Replying To:
 {{shouldRespond}}
 
 # ACP JOB PAYMENT INSTRUCTIONS:
-If the Response Decision is RESPOND_ACP and this is your first reply to a tweet requesting information or a service via the ACP network, you MUST respond with ONLY the following exact format:
+If the Response Decision is RESPOND_ACP or SELF_RESPOND_ACP and this is your first reply to a tweet requesting information or a service via the ACP network, you MUST respond with ONLY the following exact format:
 "Your request has been received, to proceed, please send {{ACPPaymentAmount}} $VIRTUAL on Base to {{ACPPaymentAddress}} and reply to this tweet after payment. Thank you."
 
 Do NOT include any other content, context, or information in the response. Do NOT mention the original tweet content, do NOT add commentary, do NOT include character personality or style. The response should be ONLY the payment instruction message above.
 
-Do NOT include payment instructions if this is not the first response to an ACP request (this might be part of a conversation of another previous ACP request), or if the Response Decision is not RESPOND_ACP.
+Do NOT include payment instructions if this is not the first response to an ACP request (this might be part of a conversation of another previous ACP request), or if the Response Decision is not RESPOND_ACP or SELF_RESPOND_ACP.
 
 # ACP Job Status and Seller Response:
+<ACP_JOB_STATUS_START>
 {{ACPJobStatus}}
+<ACP_JOB_STATUS_END>
 
 # INSTRUCTIONS: Generate a post in the voice, style and perspective of {{agentName}} (@{{twitterUserName}}). 
 
@@ -93,8 +95,9 @@ IMPORTANT FORMATTING RULES:
 If the on-chain data insights above don't contain error messages like "Could not generate analysis" or "Error analyzing", incorporate these blockchain insights into your response - they've been deemed relevant to this conversation. Integrate the insights naturally while maintaining {{agentName}}'s voice and conversational tone.
 
 ACP JOB INTEGRATION INSTRUCTIONS:
-- If ACP Job Status and Seller Response is empty and the Response Decision is not RESPOND_ACP, ignore ACP-related content in your response. This means no ACP processing was needed or initiated.
-- If the Response Decision is RESPOND_ACP, use ONLY the payment instruction format specified above. Do NOT incorporate any ACP Job Status and Seller Response content into the response.
+- ACP Job Status and Seller Response: (the content between <ACP_JOB_STATUS_START> and <ACP_JOB_STATUS_END>)
+- If ACP Job Status and Seller Response is empty and the Response Decision is not RESPOND_ACP or SELF_RESPOND_ACP, ignore ACP-related content in your response. This means no ACP processing was needed or initiated.
+- If the Response Decision is RESPOND_ACP or SELF_RESPOND_ACP, use ONLY the payment instruction format specified above. Do NOT incorporate any ACP Job Status and Seller Response content into the response.
 - CRITICAL ERROR HANDLING: If ACP Job Status and Seller Response contains ANY error messages (including but not limited to "Error:", "Failed:", "No suitable agents found", "No offerings available", "Schema validation failed", "Job failed", "Job monitoring timeout", "Error processing ACP job:", "Error processing payment confirmation:", "Error creating ACP client", "Error searching for agents", "Agent not found", "No offerings available for agent", "Error initiating ACP job", "Failed to retrieve agent or initiate job", "No agent details found", or any other error indicators), completely ignore ACP-related content in your response and do not mention ACP at all. Respond as if ACP was never mentioned. DO NOT acknowledge payment, DO NOT mention job completion, DO NOT reference any ACP-related information.
 - If the Response Decision is RESPOND_PAYMENT_CONFIRMED and ACP Job Status and Seller Response contains a seller response (look for "Seller Response:" in the text), incorporate that response naturally into your reply. PRESERVE ALL DETAILS, STATISTICS, AND ANALYSIS from the seller response - do not summarize or condense the information. The seller response contains valuable work results that should be shared with the user in full detail. DO NOT add phrases like "job completed successfully" or any other job completion language - simply present the seller response content directly.
 - CRITICAL: When seller responses contain multiple tokens/items, you MUST include ALL tokens/items mentioned in the response. Do not pick and choose - include every single one with their key details.
@@ -113,6 +116,8 @@ Here is the descriptions of images in the Current post.
 {{imageDescriptions}}
 
 FINAL REMINDER: If ACP Job Status and Seller Response contains ANY error message (starts with "Error:" or contains "Failed:", "No agent details found", etc.), completely ignore all ACP-related content and respond as if the user just sent a normal message without any ACP context.
+
+# CRITICAL INSTRUCTION: If the Response Decision is RESPOND_PAYMENT_CONFIRMED and ACP Job Status and Seller Response is present, output ONLY the content between <ACP_JOB_STATUS_START> and <ACP_JOB_STATUS_END> as your response. Do not summarize, rewrite, or add anything. Format the information to remove symbols used for formatting (one example includes repeated "-"), but keep paragraphs.
 ` + messageCompletionFooter;
 
 /**
@@ -145,6 +150,7 @@ export const twitterShouldRespondTemplate = (targetUsersStr: string) =>
 
 - [RESPOND]: Respond to the tweet as usual.
 - [RESPOND_ACP]: Respond to the tweet and indicate that an ACP (Agent Commerce Protocol) service is required for the next step (i.e., the tweet requests a service/information or content that can be accomplished by the ACP agent network).
+- [SELF_RESPOND_ACP]: Respond to the tweet and indicate that a blockchain/web3 gaming related content generation request requires an ACP service (separate flow from regular ACP requests).
 - [RESPOND_PAYMENT_CONFIRMED]: Respond to the tweet indicating that the user has confirmed payment has been made for a previous ACP request.
 - [IGNORE]: Skip this interaction.
 - [STOP]: Stop participating in this conversation.
@@ -163,6 +169,19 @@ For other users:
 # ACP SERVICE DETECTION:
 If the tweet requests a service, information, or content that can be accomplished by the network of agents in the ACP (Agent Commerce Protocol) network, respond with [RESPOND_ACP].
 
+# BLOCKCHAIN/WEB3 GAMING CONTENT GENERATION DETECTION:
+If the tweet requests blockchain/web3 gaming related content generation that can be accomplished by the ACP network, respond with [SELF_RESPOND_ACP]. This includes but is not limited to:
+- Web3 gaming market analysis and reports
+- Blockchain gaming trend summaries
+- NFT gaming ecosystem research
+- DeFi gaming protocol analysis
+- Metaverse gaming content generation
+- Blockchain gaming newsletter creation
+- Web3 gaming alpha/insights generation
+- Gaming token analysis and reports
+- Play-to-earn gaming research
+- Blockchain gaming industry summaries
+
 The ACP network offers a wide variety of services, including but not limited to:
 - Authenticate NFT on Story Protocol
 - Smart contract analysis
@@ -177,7 +196,8 @@ The ACP network offers a wide variety of services, including but not limited to:
 - Automated research and information gathering
 - Generating newsletters or summaries of news/events (e.g., "Could you create a newsletter for me, covering the top 3 news on web3 gaming that happened on July?")
 
-If the tweet requests any of these services, or any other service, information, or content that could be fulfilled by an agent in the ACP network, respond with [RESPOND_ACP].
+If the tweet requests blockchain/web3 gaming related content generation services, respond with [SELF_RESPOND_ACP].
+If the tweet requests any other services, information, or content that could be fulfilled by an agent in the ACP network, respond with [RESPOND_ACP].
 
 If the tweet does not request such a service, but should otherwise be responded to, respond with [RESPOND].
 
@@ -199,8 +219,8 @@ Current Post:
 Thread of Tweets You Are Replying To:
 {{formattedConversation}}
 
-# INSTRUCTIONS: Respond with [RESPOND_ACP] if the tweet requests a service/information/content that can be accomplished by the ACP agent network, [RESPOND_PAYMENT_CONFIRMED] if the user has confirmed payment for a previous ACP request, [RESPOND] if a normal response is appropriate, [IGNORE] if no response is needed, or [STOP] if participation should end.
-` + shouldRespondFooter;
+# INSTRUCTIONS: Respond with [SELF_RESPOND_ACP] if the tweet requests blockchain/web3 gaming related content generation that can be accomplished by the ACP agent network, [RESPOND_ACP] if the tweet requests any other service/information/content that can be accomplished by the ACP agent network, [RESPOND_PAYMENT_CONFIRMED] if the user has confirmed payment for a previous ACP request, [RESPOND] if a normal response is appropriate, [IGNORE] if no response is needed, or [STOP] if participation should end.
+`;
 
 export class TwitterInteractionClient {
     client: ClientBase;
@@ -542,7 +562,7 @@ export class TwitterInteractionClient {
         });
 
         // Promise<"RESPOND" | "IGNORE" | "STOP" | null> {
-        if (shouldRespond !== "RESPOND" && shouldRespond !== "RESPOND_ACP" && shouldRespond !== "RESPOND_PAYMENT_CONFIRMED") {
+        if (shouldRespond !== "RESPOND" && shouldRespond !== "RESPOND_ACP" && shouldRespond !== "SELF_RESPOND_ACP" && shouldRespond !== "RESPOND_PAYMENT_CONFIRMED") {
             elizaLogger.log("Not responding to message");
             return { text: "Response Decision:", action: shouldRespond };
         }
@@ -572,7 +592,7 @@ export class TwitterInteractionClient {
 
         let ACPJobStatus = "";
         let ACPPaymentAmount = 0;
-        if (this.client.twitterConfig.ENABLE_VIRTUALS_ACP && (shouldRespond === "RESPOND_ACP" || shouldRespond === "RESPOND_PAYMENT_CONFIRMED")) {
+        if (this.client.twitterConfig.ENABLE_VIRTUALS_ACP && (shouldRespond === "RESPOND_ACP" || shouldRespond === "SELF_RESPOND_ACP" || shouldRespond === "RESPOND_PAYMENT_CONFIRMED")) {
             elizaLogger.debug(`[Virtuals ACP] Tweet: ${tweet.text} shouldRespond: ${shouldRespond}`);
 
             const acpResult = await processVirtualsACP(
