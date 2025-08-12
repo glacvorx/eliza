@@ -117,7 +117,7 @@ Here is the descriptions of images in the Current post.
 
 FINAL REMINDER: If ACP Job Status and Seller Response contains ANY error message (starts with "Error:" or contains "Failed:", "No agent details found", etc.), completely ignore all ACP-related content and respond as if the user just sent a normal message without any ACP context.
 
-# CRITICAL INSTRUCTION: If the Response Decision is RESPOND_PAYMENT_CONFIRMED and ACP Job Status and Seller Response is present, output ONLY the content between <ACP_JOB_STATUS_START> and <ACP_JOB_STATUS_END> as your response. Do not summarize, rewrite, or add anything. Format the information to remove symbols used for formatting (one example includes repeated "-"), but keep paragraphs.
+# CRITICAL INSTRUCTION: If the Response Decision is RESPOND_PAYMENT_CONFIRMED and ACP Job Status and Seller Response is present, output ONLY the content between <ACP_JOB_STATUS_START> and <ACP_JOB_STATUS_END> as your response. Do not summarize, rewrite, or add anything. Format the information to remove symbols used for formatting (one example includes repeated "-"), but keep paragraphs, and replace double line breaks (\n\n) with a single line break.
 ` + messageCompletionFooter;
 
 /**
