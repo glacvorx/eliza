@@ -33,6 +33,17 @@ import { processVirtualsACP, type ACPAgentDetails } from "./virtualsACP.ts";
  */
 export const twitterMessageHandlerTemplate =
     `
+# STOP AND READ THIS FIRST - THIS IS THE ONLY INSTRUCTION THAT MATTERS FOR ACP REQUESTS:
+Response Decision: {{shouldRespond}}
+
+IF Response Decision is RESPOND_ACP or SELF_RESPOND_ACP:
+STOP READING NOW. Output ONLY this exact message:
+"Your request has been received, to proceed, please send {{ACPPaymentAmount}} $VIRTUAL on Base to {{ACPPaymentAddress}} and reply to this tweet after payment. Thank you."
+
+DO NOT READ ANYTHING BELOW THIS LINE IF Response Decision is RESPOND_ACP or SELF_RESPOND_ACP.
+
+IF Response Decision is NOT RESPOND_ACP or SELF_RESPOND_ACP, continue reading below:
+
 # Areas of Expertise
 {{knowledge}}
 
@@ -54,7 +65,7 @@ Recent interactions between {{agentName}} and other users:
 
 {{recentPosts}}
 
-# TASK: Generate a post/reply in a short and concise manner in the voice, style and perspective of {{agentName}} (@{{twitterUserName}}) while using the thread of tweets as additional context:
+# TASK: Generate a post/reply in the voice, style and perspective of {{agentName}} (@{{twitterUserName}}) while using the thread of tweets as additional context:
 
 Current Post:
 {{currentPost}}
@@ -69,14 +80,6 @@ Thread of Tweets You Are Replying To:
 
 # Response Decision:
 {{shouldRespond}}
-
-# ACP JOB PAYMENT INSTRUCTIONS:
-If the Response Decision is RESPOND_ACP or SELF_RESPOND_ACP and this is your first reply to a tweet requesting information or a service via the ACP network, you MUST respond with ONLY the following exact format:
-"Your request has been received, to proceed, please send {{ACPPaymentAmount}} $VIRTUAL on Base to {{ACPPaymentAddress}} and reply to this tweet after payment. Thank you."
-
-Do NOT include any other content, context, or information in the response. Do NOT mention the original tweet content, do NOT add commentary, do NOT include character personality or style. The response should be ONLY the payment instruction message above.
-
-Do NOT include payment instructions if this is not the first response to an ACP request (this might be part of a conversation of another previous ACP request), or if the Response Decision is not RESPOND_ACP or SELF_RESPOND_ACP.
 
 # ACP Job Status and Seller Response:
 <ACP_JOB_STATUS_START>
@@ -97,7 +100,6 @@ If the on-chain data insights above don't contain error messages like "Could not
 ACP JOB INTEGRATION INSTRUCTIONS:
 - ACP Job Status and Seller Response: (the content between <ACP_JOB_STATUS_START> and <ACP_JOB_STATUS_END>)
 - If ACP Job Status and Seller Response is empty and the Response Decision is not RESPOND_ACP or SELF_RESPOND_ACP, ignore ACP-related content in your response. This means no ACP processing was needed or initiated.
-- If the Response Decision is RESPOND_ACP or SELF_RESPOND_ACP, use ONLY the payment instruction format specified above. Do NOT incorporate any ACP Job Status and Seller Response content into the response.
 - CRITICAL ERROR HANDLING: If ACP Job Status and Seller Response contains ANY error messages (including but not limited to "Error:", "Failed:", "No suitable agents found", "No offerings available", "Schema validation failed", "Job failed", "Job monitoring timeout", "Error processing ACP job:", "Error processing payment confirmation:", "Error creating ACP client", "Error searching for agents", "Agent not found", "No offerings available for agent", "Error initiating ACP job", "Failed to retrieve agent or initiate job", "No agent details found", or any other error indicators), completely ignore ACP-related content in your response and do not mention ACP at all. Respond as if ACP was never mentioned. DO NOT acknowledge payment, DO NOT mention job completion, DO NOT reference any ACP-related information.
 - If the Response Decision is RESPOND_PAYMENT_CONFIRMED and ACP Job Status and Seller Response contains a seller response (look for "Seller Response:" in the text), incorporate that response naturally into your reply. PRESERVE ALL DETAILS, STATISTICS, AND ANALYSIS from the seller response - do not summarize or condense the information. The seller response contains valuable work results that should be shared with the user in full detail. DO NOT add phrases like "job completed successfully" or any other job completion language - simply present the seller response content directly.
 - CRITICAL: When seller responses contain multiple tokens/items, you MUST include ALL tokens/items mentioned in the response. Do not pick and choose - include every single one with their key details.
@@ -123,6 +125,9 @@ FINAL REMINDER: If ACP Job Status and Seller Response contains ANY error message
 - Format the information to remove symbols used for formatting (one example includes repeated "-"), but keep paragraphs
 - Replace double line breaks (\n\n) with a single line break.
 - Remove sign offs mentioning "Arbus".
+
+# ACP FINAL CHECK:
+If Response Decision is RESPOND_ACP or SELF_RESPOND_ACP, output ONLY the ACP payment message from the top of this template.
 ` + messageCompletionFooter;
 
 /**
