@@ -85,6 +85,14 @@ export const twitterEnvSchema = z.object({
     TWITTER_COINGECKO_API_KEY: z.string(),
     ENABLE_CARV_DATA: z.boolean(),
     ENABLE_TWEET_FORMATTING: z.boolean(),
+    ENABLE_VIRTUALS_ACP: z.boolean(),
+    VIRTUALS_ACP_BUYER_WALLET_ADDRESS: z.string(),
+    VIRTUALS_ACP_BUYER_ENTITY_ID: z.number().int(),
+    VIRTUALS_ACP_BUYER_PRIVATE_KEY: z.string(),
+    VIRTUALS_ACP_SELLER_WALLET_ADDRESS: z.string(),
+    VIRTUALS_ACP_SELLER_ENTITY_ID: z.number().int(),
+    VIRTUALS_ACP_SELLER_PRIVATE_KEY: z.string(),
+    ARBUS_API_KEY: z.string(),
 });
 
 export type TwitterConfig = z.infer<typeof twitterEnvSchema>;
@@ -289,6 +297,44 @@ export async function validateTwitterConfig(
                     runtime.getSetting("ENABLE_TWEET_FORMATTING") ||
                     process.env.ENABLE_TWEET_FORMATTING
                 ) ?? false,
+
+            ENABLE_VIRTUALS_ACP:
+                parseBooleanFromText(
+                    runtime.getSetting("ENABLE_VIRTUALS_ACP") ||
+                    process.env.ENABLE_VIRTUALS_ACP
+                ) ?? false,
+
+            VIRTUALS_ACP_BUYER_WALLET_ADDRESS:
+                runtime.getSetting("VIRTUALS_ACP_BUYER_WALLET_ADDRESS") ||
+                process.env.VIRTUALS_ACP_BUYER_WALLET_ADDRESS,
+
+            VIRTUALS_ACP_BUYER_ENTITY_ID: safeParseInt(
+                runtime.getSetting("VIRTUALS_ACP_BUYER_ENTITY_ID") ||
+                process.env.VIRTUALS_ACP_BUYER_ENTITY_ID,
+                0
+            ),
+
+            VIRTUALS_ACP_BUYER_PRIVATE_KEY:
+                runtime.getSetting("VIRTUALS_ACP_BUYER_PRIVATE_KEY") ||
+                process.env.VIRTUALS_ACP_BUYER_PRIVATE_KEY,
+
+            VIRTUALS_ACP_SELLER_WALLET_ADDRESS:
+                runtime.getSetting("VIRTUALS_ACP_SELLER_WALLET_ADDRESS") ||
+                process.env.VIRTUALS_ACP_SELLER_WALLET_ADDRESS,
+
+            VIRTUALS_ACP_SELLER_ENTITY_ID: safeParseInt(
+                runtime.getSetting("VIRTUALS_ACP_SELLER_ENTITY_ID") ||
+                process.env.VIRTUALS_ACP_SELLER_ENTITY_ID,
+                0
+            ),
+
+            VIRTUALS_ACP_SELLER_PRIVATE_KEY:
+                runtime.getSetting("VIRTUALS_ACP_SELLER_PRIVATE_KEY") ||
+                process.env.VIRTUALS_ACP_SELLER_PRIVATE_KEY,
+
+            ARBUS_API_KEY:
+                runtime.getSetting("ARBUS_API_KEY") ||
+                process.env.ARBUS_API_KEY,
         };
 
         return twitterEnvSchema.parse(twitterConfig);
