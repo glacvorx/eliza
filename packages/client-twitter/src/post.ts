@@ -1022,10 +1022,11 @@ export class TwitterPostClient {
             try {
                 const executedActions: string[] = [];
 
-                // Disable all actions except replies to mentions
+                // Disable all actions
                 actionResponse.like = false;
                 actionResponse.retweet = false;
                 actionResponse.quote = false;
+                actionResponse.reply = false;
 
                 try {
                     await this.handleTextOnlyReply(
