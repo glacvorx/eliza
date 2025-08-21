@@ -407,6 +407,7 @@ export interface ACPAgentDetails {
     requirement: any;
     status: 'pending_payment' | 'paid' | 'completed' | 'failed';
     isSelfRespondACP: boolean;
+    arbusData: string;
     createdAt: number;
 }
 
@@ -430,11 +431,12 @@ async function searchACPAgent(twitterConfig: TwitterConfig, agentFilterKeyword: 
 
         let chosenJobOffering: any;
         let chosenAgent: any;
+        let arbusData: string;
 
         // Check if we should use a specific configured agent for SELF_RESPOND_ACP
         if (isSelfRespondACP) {
             try {
-                elizaLogger.debug("[Virtuals ACP] Using configured agent for SELF_RESPOND_ACP...");
+                elizaLogger.debug("[Virtuals ACP] Using configured agent for SELF_RESPOND_ACP.");
                 // Get the agent by wallet address
                 const agent = await acpClient.getAgent(twitterConfig.VIRTUALS_ACP_SELLER_WALLET_ADDRESS as Address);
                 if (!agent || !agent.offerings || agent.offerings.length === 0) {
@@ -442,9 +444,14 @@ async function searchACPAgent(twitterConfig: TwitterConfig, agentFilterKeyword: 
                     return { agentDetails: null, error: "No offerings available for the configured agent." };
                 }
                 chosenJobOffering = agent.offerings[0];
-                chosenAgent = agent;
-                elizaLogger.debug("[Virtuals ACP] Using configured agent:", agent.name);
                 elizaLogger.debug("[Virtuals ACP] Chosen job offering:", chosenJobOffering.type);
+                chosenAgent = agent;
+                elizaLogger.debug("[Virtuals ACP] Using configured agent:", chosenAgent);
+
+                // Get Arbus response and also check if it has response.
+                const fetchData = await fetchArbusApi(twitterConfig.ARBUS_API_KEY, jobRequirement);
+                arbusData = fetchData.response;
+                elizaLogger.debug('[Virtuals ACP] Got Arbus API response:', arbusData);
             } catch (error) {
                 elizaLogger.error("[Virtuals ACP] Error getting configured agent:", error);
                 return { agentDetails: null, error: "Error accessing configured agent. Please try again." };
@@ -513,6 +520,7 @@ async function searchACPAgent(twitterConfig: TwitterConfig, agentFilterKeyword: 
             requirement: jobRequirementObject,
             status: "pending_payment",
             isSelfRespondACP: isSelfRespondACP,
+            arbusData: arbusData,
             createdAt: Date.now()
         };
 
@@ -865,6 +873,11 @@ export async function processVirtualsACP(
                             requirementLength: shouldUseACP.requirement!.length
                         });
 
+                        // Handle SELF_RESPOND_ACP
+                        if (agentDetails.isSelfRespondACP && agentDetails.arbusData) {
+                            sellerResponse = agentDetails.arbusData;
+                        }
+
                         // Return with agent details for storage
                         return { sellerResponse, ACPPaymentAmount: agentDetails.price };
                     } else {
@@ -945,17 +958,14 @@ async function processACPPaymentConfirmation(
             await updateACPAgentStatus(runtime, originalTweetId!, 'paid');
 
             if (agentDetails.isSelfRespondACP) {
-                // Responding using Arbus API flow
+                // Responding using Arbus flow
                 elizaLogger.log(`[Virtuals ACP] Responding using Arbus API flow for tweet ${originalTweetId}`);
-
-                const arbusData = await fetchArbusApi(twitterConfig.ARBUS_API_KEY, agentDetails.jobRequirement);
-                elizaLogger.debug('[Virtuals ACP] Got Arbus API response:', arbusData.response);
 
                 // Update agent status to completed in cache
                 await updateACPAgentStatus(runtime, originalTweetId!, 'completed');
 
                 return {
-                    sellerResponse: arbusData.response,
+                    sellerResponse: agentDetails.arbusData,
                     success: true
                 }
             } else {

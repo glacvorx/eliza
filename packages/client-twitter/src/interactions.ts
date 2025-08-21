@@ -4,7 +4,7 @@ import {
     generateMessageResponse,
     generateShouldRespond,
     messageCompletionFooter,
-    shouldRespondFooter,
+    // shouldRespondFooter,
     type Content,
     type HandlerCallback,
     type IAgentRuntime,
@@ -21,7 +21,7 @@ import type { ClientBase } from "./base";
 import { buildConversationThread, sendTweet, wait } from "./utils.ts";
 import { processCARVData } from "./carvDATA.ts";
 import { formatTweetUsingTemplate } from "./formatting.ts";
-import { processVirtualsACP, type ACPAgentDetails } from "./virtualsACP.ts";
+import { processVirtualsACP } from "./virtualsACP.ts";
 
 /**
  * Template used to generate the actual response content for both replies and mentions.
@@ -36,11 +36,22 @@ export const twitterMessageHandlerTemplate =
 # STOP AND READ THIS FIRST - THIS IS THE ONLY INSTRUCTION THAT MATTERS FOR ACP REQUESTS:
 Response Decision: {{shouldRespond}}
 
-IF Response Decision is RESPOND_ACP or SELF_RESPOND_ACP:
+# ACP Job Status and Seller Response:
+<ACP_JOB_STATUS_START>
+{{ACPJobStatus}}
+<ACP_JOB_STATUS_END>
+
+IF Response Decision is RESPOND_ACP:
 STOP READING NOW. Output ONLY this exact message:
 "Your request has been received, to proceed, please send {{ACPPaymentAmount}} $VIRTUAL on Base to {{ACPPaymentAddress}} and reply to this tweet after payment. Thank you."
 
-DO NOT READ ANYTHING BELOW THIS LINE IF Response Decision is RESPOND_ACP or SELF_RESPOND_ACP.
+IF Response Decision is SELF_RESPOND_ACP:
+Check the ACP Job Status below. If it contains phrases like "no data", "no information", "unable to provide", "do not have any specific information", "no campaign dates", "no guidelines", or similar language indicating the service cannot be fulfilled, then continue reading below and use the normal response generation logic instead of the ACP payment message.
+
+If the ACP Job Status does NOT contain such phrases, then STOP READING NOW and output ONLY this exact message:
+"Your request has been received, to proceed, please send {{ACPPaymentAmount}} $VIRTUAL on Base to {{ACPPaymentAddress}} and reply to this tweet after payment. Thank you."
+
+DO NOT READ ANYTHING BELOW THIS LINE IF Response Decision is RESPOND_ACP or if SELF_RESPOND_ACP with a valid ACP Job Status.
 
 IF Response Decision is NOT RESPOND_ACP or SELF_RESPOND_ACP, continue reading below:
 
@@ -65,7 +76,7 @@ Recent interactions between {{agentName}} and other users:
 
 {{recentPosts}}
 
-# TASK: Generate a post/reply in the voice, style and perspective of {{agentName}} (@{{twitterUserName}}) while using the thread of tweets as additional context:
+# TASK (normal response): Generate a post/reply in the voice, style and perspective of {{agentName}} (@{{twitterUserName}}) while using the thread of tweets as additional context:
 
 Current Post:
 {{currentPost}}
@@ -77,14 +88,6 @@ Thread of Tweets You Are Replying To:
 
 # On-Chain Data Insights:
 {{CARVInsights}}
-
-# Response Decision:
-{{shouldRespond}}
-
-# ACP Job Status and Seller Response:
-<ACP_JOB_STATUS_START>
-{{ACPJobStatus}}
-<ACP_JOB_STATUS_END>
 
 # INSTRUCTIONS: Generate a post in the voice, style and perspective of {{agentName}} (@{{twitterUserName}}). 
 
@@ -127,7 +130,11 @@ FINAL REMINDER: If ACP Job Status and Seller Response contains ANY error message
 - Remove sign offs mentioning "Arbus".
 
 # ACP FINAL CHECK:
-If Response Decision is RESPOND_ACP or SELF_RESPOND_ACP, output ONLY the ACP payment message from the top of this template.
+If Response Decision is RESPOND_ACP, output ONLY the ACP payment message from the top of this template.
+
+If Response Decision is SELF_RESPOND_ACP:
+- If ACP Job Status contains phrases like "no data", "no information", "unable to provide", "do not have any specific information", "no campaign dates", "no guidelines", or similar language indicating the service cannot be fulfilled, continue with normal response generation.
+- If ACP Job Status does NOT contain such phrases, output ONLY the ACP payment message from the top of this template.
 ` + messageCompletionFooter;
 
 /**
@@ -206,6 +213,7 @@ The ACP network offers a wide variety of services, including but not limited to:
 - Content generation (including newsletters, reports, summaries, research, and similar requests)
 - Automated research and information gathering
 - Generating newsletters or summaries of news/events (e.g., "Could you create a newsletter for me, covering the top 3 news on web3 gaming that happened on July?")
+- Getting alpha
 
 If the tweet requests blockchain/web3 gaming related content generation services, respond with [SELF_RESPOND_ACP].
 If the tweet requests any other services, information, or content that could be fulfilled by an agent in the ACP network, respond with [RESPOND_ACP].
