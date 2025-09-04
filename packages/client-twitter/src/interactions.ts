@@ -43,13 +43,13 @@ Response Decision: {{shouldRespond}}
 
 IF Response Decision is RESPOND_ACP:
 STOP READING NOW. Output ONLY this exact message:
-"Your request has been received, to proceed, please send {{ACPPaymentAmount}} $VIRTUAL on Base to {{ACPPaymentAddress}} and reply to this tweet after payment. Thank you."
+"Your request has been received, to proceed, please send {{ACPPaymentAmount}} $USDC on Base to {{ACPPaymentAddress}} and reply to this tweet after payment. Thank you."
 
 IF Response Decision is SELF_RESPOND_ACP:
 Check the ACP Job Status below. If it contains phrases like "no data", "no information", "unable to provide", "do not have any specific information", "no campaign dates", "no guidelines", or similar language indicating the service cannot be fulfilled, then continue reading below and use the normal response generation logic instead of the ACP payment message.
 
 If the ACP Job Status does NOT contain such phrases, then STOP READING NOW and output ONLY this exact message:
-"Your request has been received, to proceed, please send {{ACPPaymentAmount}} $VIRTUAL on Base to {{ACPPaymentAddress}} and reply to this tweet after payment. Thank you."
+"Your request has been received, to proceed, please send {{ACPPaymentAmount}} $USDC on Base to {{ACPPaymentAddress}} and reply to this tweet after payment. Thank you."
 
 DO NOT READ ANYTHING BELOW THIS LINE IF Response Decision is RESPOND_ACP or if SELF_RESPOND_ACP with a valid ACP Job Status.
 
@@ -104,12 +104,12 @@ ACP JOB INTEGRATION INSTRUCTIONS:
 - ACP Job Status and Seller Response: (the content between <ACP_JOB_STATUS_START> and <ACP_JOB_STATUS_END>)
 - If ACP Job Status and Seller Response is empty and the Response Decision is not RESPOND_ACP or SELF_RESPOND_ACP, ignore ACP-related content in your response. This means no ACP processing was needed or initiated.
 - CRITICAL ERROR HANDLING: If ACP Job Status and Seller Response contains ANY error messages (including but not limited to "Error:", "Failed:", "No suitable agents found", "No offerings available", "Schema validation failed", "Job failed", "Job monitoring timeout", "Error processing ACP job:", "Error processing payment confirmation:", "Error creating ACP client", "Error searching for agents", "Agent not found", "No offerings available for agent", "Error initiating ACP job", "Failed to retrieve agent or initiate job", "No agent details found", or any other error indicators), completely ignore ACP-related content in your response and do not mention ACP at all. Respond as if ACP was never mentioned. DO NOT acknowledge payment, DO NOT mention job completion, DO NOT reference any ACP-related information.
-- If the Response Decision is RESPOND_PAYMENT_CONFIRMED and ACP Job Status and Seller Response contains a seller response (look for "Seller Response:" in the text), incorporate that response naturally into your reply. PRESERVE ALL DETAILS, STATISTICS, AND ANALYSIS from the seller response - do not summarize or condense the information. The seller response contains valuable work results that should be shared with the user in full detail. DO NOT add phrases like "job completed successfully" or any other job completion language - simply present the seller response content directly.
-- CRITICAL: When seller responses contain multiple tokens/items, you MUST include ALL tokens/items mentioned in the response. Do not pick and choose - include every single one with their key details.
-- For each token/item in the seller response, include: token name/ticker, score, key rationale, and most relevant summary points. Do not omit any tokens from the response.
-- If the seller response contains detailed JSON data with multiple entries, parse and include ALL entries with their respective details (scores, rationales, summaries, etc.).
-- If the Response Decision is RESPOND_PAYMENT_CONFIRMED and ACP Job Status and Seller Response indicates a job was completed with a success response (look for "Payment received! Job completed successfully" or "Job completed successfully"), DO NOT mention job completion or success. Simply present the seller response content directly without any acknowledgment of job completion.
-- PAYMENT FAILURE HANDLING: If the Response Decision is RESPOND_PAYMENT_CONFIRMED and ACP Job Status and Seller Response contains payment failure messages (look for "Payment not received" or "Please send [amount] $VIRTUAL on Base to [address] and reply to this tweet again"), you MUST respond with ONLY the following exact format:
+- If the Response Decision is RESPOND_PAYMENT_CONFIRMED and ACP Job Status and Seller Response contains a seller response (look for "Seller Response:" in the text), incorporate that response naturally into your reply. PRESERVE ALL DETAILS, STATISTICS, AND ANALYSIS from the seller response - do not summarize or condense the information. The seller response contains valuable work results that should be shared with the user in full detail. DO NOT add phrases like "job completed successfully" or any other job completion language - simply present the seller response content directly (unless its JSON or other computerised data, we want to parse data for human readability).
+CRITICAL: When seller responses contain multiple tokens/items, you MUST include ALL tokens/items mentioned in the response. Do not pick and choose - include every single one with their key details.
+For each token/item in the seller response, include: token name/ticker, score, key rationale, and most relevant summary points. Do not omit any tokens from the response.
+If the seller response contains detailed JSON data with multiple entries, parse and include ALL entries with their respective details (scores, rationales, summaries, etc.).
+If the Response Decision is RESPOND_PAYMENT_CONFIRMED and ACP Job Status and Seller Response indicates a job was completed with a success response that includes data (look for "Payment received! Job completed successfully" or "Job completed successfully"), DO NOT mention job completion or success. Simply present the seller response content directly and remove any acknowledgment of job completion.
+- PAYMENT FAILURE HANDLING: If the Response Decision is RESPOND_PAYMENT_CONFIRMED and ACP Job Status and Seller Response contains payment failure messages (look for "Payment not received" or "Please send [amount] $USDC on Base to [address] and reply to this tweet again"), you MUST respond with ONLY the following exact format:
 "Apologies, the payment was not received. Please send the tokens on Base and reply to this tweet once you've sent it. Thank you!"
 - Always maintain {{agentName}}'s voice and style when incorporating ACP information.
 - Remember that ACP jobs will always have a response - either initial payment instructions, seller response data, success confirmation, payment failure messages, or empty string (no ACP processing). The response will be available in the ACP Job Status and Seller Response field.
@@ -214,6 +214,7 @@ The ACP network offers a wide variety of services, including but not limited to:
 - Automated research and information gathering
 - Generating newsletters or summaries of news/events (e.g., "Could you create a newsletter for me, covering the top 3 news on web3 gaming that happened on July?")
 - Getting alpha
+- Generating art/pfp/memes/videos/images/etc.
 
 If the tweet requests blockchain/web3 gaming related content generation services, respond with [SELF_RESPOND_ACP].
 If the tweet requests any other services, information, or content that could be fulfilled by an agent in the ACP network, respond with [RESPOND_ACP].
@@ -223,11 +224,11 @@ If the tweet does not request such a service, but should otherwise be responded 
 # ACP PAYMENT CONFIRMATION DETECTION:
 If this tweet appears to be a reply to a previous ACP payment request and contains payment confirmation language, respond with [RESPOND_PAYMENT_CONFIRMED]. Look for phrases like:
 - "sent", "paid", "payment sent", "done", "completed", "finished", "submitted", "transferred"
-- "sent the payment", "paid the fee", "sent the virtuals", "payment done", "transaction sent"
+- "sent the payment", "paid the fee", "sent the usdc", "payment done", "transaction sent"
 - "i sent it", "payment completed", "transaction done", "money sent", "fee paid"
 - Any confirmation that payment has been made
 
-The tweet must be replying to a tweet that contains ACP payment instructions (look for mentions of $VIRTUAL, Base chain, or payment addresses) to qualify as a payment confirmation.
+The tweet must be replying to a tweet that contains ACP payment instructions (look for mentions of $USDC, Base chain, or payment addresses) to qualify as a payment confirmation.
 
 Recent Posts:
 {{recentPosts}}

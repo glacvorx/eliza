@@ -370,7 +370,7 @@ async function generateJobRequirementObject(
  * Generates a unique price by adding a small random decimal to the base price
  * This ensures each payment request has a unique amount for tracking
  * 
- * Approach: Add a random decimal between 0.00001 and 0.09999 to the base price
+ * Approach: Add a random decimal between 0.000001 and 0.009999 to the base price
  * This provides ~10,000 unique combinations while keeping the price increase minimal
  * 
  * @param basePrice The original price from the agent offering
@@ -382,12 +382,12 @@ function generateUniquePrice(basePrice: number): number {
         throw new Error(`Invalid base price: ${basePrice}. Must be a positive number.`);
     }
 
-    // Generate a random decimal between 0.00001 and 0.09999 (max 0.1)
-    const randomDecimal = Math.random() * 0.09998 + 0.00001;
-    // Round to 5 decimal places to avoid floating point precision issues
-    const uniquePrice = Math.round((basePrice + randomDecimal) * 100000) / 100000;
+    // Generate a random decimal between 0.000001 and 0.009999 (~10k combinations)
+    const randomDecimal = Math.random() * (0.009999 - 0.000001) + 0.000001;
+    // Round to 6 decimal places to avoid floating point precision issues
+    const uniquePrice = Math.round((basePrice + randomDecimal) * 1000000) / 1000000;
 
-    elizaLogger.debug(`[Virtuals ACP] Generated unique price: ${basePrice} + ${randomDecimal.toFixed(5)} = ${uniquePrice}`);
+    elizaLogger.debug(`[Virtuals ACP] Generated unique price: ${basePrice} + ${randomDecimal.toFixed(6)} = ${uniquePrice}`);
     return uniquePrice;
 }
 
@@ -418,7 +418,7 @@ async function searchACPAgent(twitterConfig: TwitterConfig, agentFilterKeyword: 
 
         // Try all possible locations for the class
         const AcpClient = (AcpModule as any).default?.default || (AcpModule as any).default || (AcpModule as any).AcpClient;
-        const { AcpContractClient, baseAcpConfig, AcpAgentSort } = AcpModule;
+        const { AcpContractClient, baseAcpConfig, AcpAgentSort, AcpOnlineStatus, AcpGraduationStatus } = AcpModule;
 
         const acpClient = new AcpClient({
             acpContractClient: await AcpContractClient.build(
@@ -462,10 +462,12 @@ async function searchACPAgent(twitterConfig: TwitterConfig, agentFilterKeyword: 
                 elizaLogger.debug("[Virtuals ACP] Browsing agents...");
                 const relevantAgents = await acpClient.browseAgents(
                     agentFilterKeyword,
-                    "",
-                    [AcpAgentSort.SUCCESSFUL_JOB_COUNT, AcpAgentSort.IS_ONLINE],
-                    true,
-                    5
+                    {
+                        sort_by: [AcpAgentSort.SUCCESSFUL_JOB_COUNT],
+                        top_k: 5,
+                        graduationStatus: AcpGraduationStatus.ALL,
+                        onlineStatus: AcpOnlineStatus.ONLINE,
+                    }
                 );
                 if (relevantAgents.length === 0) {
                     elizaLogger.warn("[Virtuals ACP] No relevant agents found");
@@ -524,7 +526,7 @@ async function searchACPAgent(twitterConfig: TwitterConfig, agentFilterKeyword: 
             createdAt: Date.now()
         };
 
-        elizaLogger.log(`[Virtuals ACP] Successfully found agent: ${agentDetails.agentName} with base price: ${chosenJobOffering.price} $VIRTUAL, unique price: ${agentDetails.price} $VIRTUAL`);
+        elizaLogger.log(`[Virtuals ACP] Successfully found agent: ${agentDetails.agentName} with base price: ${chosenJobOffering.price} $USDC, unique price: ${agentDetails.price} $USDC`);
         return { agentDetails };
     } catch (error) {
         elizaLogger.error("[Virtuals ACP] Error creating ACP Client:", error);
@@ -620,7 +622,7 @@ async function monitorACPServiceResponse(
 
 /**
  * Checks for ERC-20 token transfer transactions on Base mainnet using Alchemy Transfers API
- * Looks for specific $VIRTUAL token transfers to the wallet address
+ * Looks for specific $USDC token transfers to the wallet address
  */
 async function checkForVirtualTokenPayment(
     walletAddress: string,
@@ -634,9 +636,9 @@ async function checkForVirtualTokenPayment(
         const { baseAcpConfig } = AcpModule;
 
         // Convert required amount to wei for comparison
-        const requiredAmountWei = parseUnits(requiredAmount.toString(), 18); // VIRTUAL token has 18 decimals
+        const requiredAmountWei = parseUnits(requiredAmount.toString(), 6); // USDC token has 6 decimals
 
-        elizaLogger.log(`[Virtuals ACP] Starting payment verification for ${requiredAmount} $VIRTUAL tokens to ${walletAddress}`);
+        elizaLogger.log(`[Virtuals ACP] Starting payment verification for ${requiredAmount} $USDC tokens to ${walletAddress}`);
 
         for (let attempt = 1; attempt <= maxAttempts; attempt++) {
             try {
@@ -673,15 +675,15 @@ async function checkForVirtualTokenPayment(
                 const transfers = data.result?.transfers || [];
                 // Check if any transfer matches our required amount
                 for (const transfer of transfers) {
-                    // Check if this transfer is for the VIRTUAL token
-                    if (transfer.rawContract.address.toLowerCase() !== baseAcpConfig.virtualsTokenAddress.toLowerCase()) {
+                    // Check if this transfer is for the USDC token
+                    if (transfer.rawContract.address.toLowerCase() !== "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913") {
                         continue; // Skip transfers for other tokens
                     }
 
                     // Convert the transfer value to wei for comparison
                     const transferValueWei = BigInt(transfer.rawContract.value);
                     if (transferValueWei === requiredAmountWei) {
-                        elizaLogger.log(`[Virtuals ACP] Payment found! Transfer: ${parseFloat(transfer.value)} $VIRTUAL in transaction: ${transfer.hash}`);
+                        elizaLogger.log(`[Virtuals ACP] Payment found! Transfer: ${parseFloat(transfer.value)} $USDC in transaction: ${transfer.hash}`);
                         return true;
                     }
                 }
@@ -856,8 +858,8 @@ export async function processVirtualsACP(
                         let resultText = `I found an agent that can help with your request!\n\n`;
                         resultText += `Agent: ${agentDetails.agentName}\n`;
                         resultText += `Service: ${agentDetails.offeringType}\n`;
-                        resultText += `Price: ${agentDetails.price} $VIRTUAL\n\n`;
-                        resultText += `To proceed, please send ${agentDetails.price} $VIRTUAL on Base to ${twitterConfig.VIRTUALS_ACP_BUYER_WALLET_ADDRESS}\n\n`;
+                        resultText += `Price: ${agentDetails.price} $USDC\n\n`;
+                        resultText += `To proceed, please send ${agentDetails.price} $USDC on Base to ${twitterConfig.VIRTUALS_ACP_BUYER_WALLET_ADDRESS}\n\n`;
                         resultText += `Once you've sent the payment, please reply to this tweet to let me know it's been sent!`;
 
                         sellerResponse = resultText;
@@ -943,7 +945,7 @@ async function processACPPaymentConfirmation(
             return { sellerResponse: "Error: Payment already processed or job already completed.", success: false };
         }
 
-        elizaLogger.log(`[Virtuals ACP] Processing payment confirmation for agent: ${agentDetails.agentName}, Price: ${agentDetails.price} $VIRTUAL`);
+        elizaLogger.log(`[Virtuals ACP] Processing payment confirmation for agent: ${agentDetails.agentName}, Price: ${agentDetails.price} $USDC`);
 
         // Check for payment
         const paymentReceived = await checkForVirtualTokenPayment(
@@ -1016,7 +1018,7 @@ async function processACPPaymentConfirmation(
             } else {
                 elizaLogger.log(`[Virtuals ACP] Payment not received within timeout period`);
                 return { 
-                    sellerResponse: `Payment not received. Please send ${agentDetails.price} $VIRTUAL on Base to ${twitterConfig.VIRTUALS_ACP_BUYER_WALLET_ADDRESS} and reply to this tweet again.`,
+                    sellerResponse: `Payment not received. Please send ${agentDetails.price} $USDC on Base to ${twitterConfig.VIRTUALS_ACP_BUYER_WALLET_ADDRESS} and reply to this tweet again.`,
                     success: false 
                 };
             }
@@ -1044,7 +1046,7 @@ async function buyACPServiceWithStoredAgent(
 
         // Try all possible locations for the class
         const AcpClient = (AcpModule as any).default?.default || (AcpModule as any).default || (AcpModule as any).AcpClient;
-        const { AcpContractClient, AcpJobPhases, baseAcpConfig } = AcpModule;
+        const { AcpContractClient, AcpJobPhases, baseAcpConfig, FareAmount } = AcpModule;
 
         const acpClient = new AcpClient({
             acpContractClient: await AcpContractClient.build(
@@ -1053,11 +1055,11 @@ async function buyACPServiceWithStoredAgent(
                 twitterConfig.VIRTUALS_ACP_BUYER_WALLET_ADDRESS as Address,
                 baseAcpConfig,
             ),
-            onNewTask: async (job: any) => {
+            onNewTask: async (job: any, memoToSign?: any) => {
                 elizaLogger.log("[Virtuals ACP] New task received:", job.id);
                 if (
                     job.phase === AcpJobPhases.NEGOTIATION &&
-                    job.memos.find((m: any) => m.nextPhase === AcpJobPhases.TRANSACTION)
+                    (memoToSign?.nextPhase === AcpJobPhases.TRANSACTION)
                 ) {
                     elizaLogger.log("[Virtuals ACP] Paying job", job.id);
                     try {
@@ -1109,7 +1111,7 @@ async function buyACPServiceWithStoredAgent(
                 jobId = await acpClient.initiateJob(
                     agentDetails.agentAddress,
                     agentDetails.requirement,
-                    agentDetails.offeringPrice,
+                    new FareAmount(agentDetails.offeringPrice, acpClient.acpContractClient.config.baseFare),
                     twitterConfig.VIRTUALS_ACP_BUYER_WALLET_ADDRESS as Address,
                     new Date(Date.now() + 1000 * 60 * 60 * 24), // expiredAt as last parameter
                 );
@@ -1223,13 +1225,13 @@ export async function initializeACPServiceProvider(twitterConfig: TwitterConfig)
                 twitterConfig.VIRTUALS_ACP_SELLER_WALLET_ADDRESS as Address,
                 baseAcpConfig,
             ),
-            onNewTask: async (job: any) => {
+            onNewTask: async (job: any, memoToSign?: any) => {
                 elizaLogger.log("[Virtuals ACP] New task received:", String(job.id));
 
                 // Handle job request phase - respond to incoming job requests
                 if (
                     job.phase === AcpJobPhases.REQUEST &&
-                    job.memos.find((m: any) => m.nextPhase === AcpJobPhases.NEGOTIATION)
+                    memoToSign?.nextPhase === AcpJobPhases.NEGOTIATION
                 ) {
                     elizaLogger.log("[Virtuals ACP] Responding to job", String(job.id));
                     try {
@@ -1242,10 +1244,10 @@ export async function initializeACPServiceProvider(twitterConfig: TwitterConfig)
                 // Handle transaction phase - deliver the service
                 else if (
                     job.phase === AcpJobPhases.TRANSACTION &&
-                    job.memos.find((m: any) => m.nextPhase === AcpJobPhases.EVALUATION)
+                    memoToSign?.nextPhase === AcpJobPhases.EVALUATION
                 ) {
                     elizaLogger.log("[Virtuals ACP] Delivering job", String(job.id));
-                    let serviceResult: string | undefined = undefined;
+                    let serviceResult: any;
                     try {
                         // Randomly pick one of two preset queries for the API
                         const queries = [
@@ -1254,13 +1256,9 @@ export async function initializeACPServiceProvider(twitterConfig: TwitterConfig)
                         ];
                         const query = queries[Math.floor(Math.random() * queries.length)];
                         const arbusData = await fetchArbusApi(twitterConfig.ARBUS_API_KEY, query);
-                        serviceResult = JSON.stringify({
-                            type: "arbus_api_response",
+                        serviceResult = ({
                             content: arbusData.response,
-                            query: arbusData.query,
-                            days: arbusData.days,
                             timestamp: arbusData.timestamp || new Date().toISOString(),
-                            service: "arbus_ai_assistant"
                         });
                         elizaLogger.debug(`[Virtuals ACP] Got Arbus API response for job ${String(job.id)}:`, arbusData.response);
                     } catch (apiError) {
