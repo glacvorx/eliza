@@ -35,6 +35,7 @@ import { runVirtualsGAME } from "./virtualsGAME";
 import { processCARVData } from "./carvDATA.ts";
 import { formatTweetUsingTemplate } from "./formatting.ts";
 import { runCoinGecko } from "./coinGecko";
+import { initializeACPServiceProvider } from "./virtualsACP.ts";
 
 const MAX_TIMELINES_TO_FETCH = 15;
 
@@ -124,6 +125,7 @@ export class TwitterPostClient {
     private discordApprovalChannelId: string;
     private approvalCheckInterval: number;
     private nextScheduledPostTime = 0; // Initialize to 0 to ensure first check triggers a post if needed
+    private acpServiceProvider: any = null; // Store the ACP service provider instance
 
     constructor(client: ClientBase, runtime: IAgentRuntime) {
         this.client = client;
@@ -316,6 +318,17 @@ export class TwitterPostClient {
             runCoinGeckoLoop().catch(error => {
                 elizaLogger.error(`[CoinGecko] Error in CoinGecko loop: ${error}`);
             });
+        }
+
+        // Initialize ACP Service Provider if configured
+        if (this.client.twitterConfig.ENABLE_VIRTUALS_ACP) {
+            elizaLogger.log("[Virtuals ACP] Initializing ACP service provider...");
+            try {
+                this.acpServiceProvider = await initializeACPServiceProvider(this.client.twitterConfig);
+                elizaLogger.log("[Virtuals ACP] Service provider initialized successfully and listening for job requests");
+            } catch (error) {
+                elizaLogger.error("[Virtuals ACP] Error initializing service provider:", error);
+            }
         }
 
         const generateNewTweetLoop = async () => {
@@ -1009,10 +1022,11 @@ export class TwitterPostClient {
             try {
                 const executedActions: string[] = [];
 
-                // Disable all actions except replies to mentions
+                // Disable all actions
                 actionResponse.like = false;
                 actionResponse.retweet = false;
                 actionResponse.quote = false;
+                actionResponse.reply = false;
 
                 try {
                     await this.handleTextOnlyReply(
@@ -1226,6 +1240,18 @@ export class TwitterPostClient {
 
     async stop() {
         this.stopProcessingActions = true;
+        
+        // Clean up ACP service provider if it exists
+        if (this.acpServiceProvider) {
+            try {
+                elizaLogger.log("[Virtuals ACP] Stopping service provider...");
+                // The AcpClient should handle its own cleanup when the instance is destroyed
+                this.acpServiceProvider = null;
+                elizaLogger.log("[Virtuals ACP] Service provider stopped");
+            } catch (error) {
+                elizaLogger.error("[Virtuals ACP] Error stopping service provider:", error);
+            }
+        }
     }
 
     private async sendForApproval(
