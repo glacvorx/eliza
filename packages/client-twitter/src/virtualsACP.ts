@@ -465,7 +465,7 @@ async function searchACPAgent(twitterConfig: TwitterConfig, agentFilterKeyword: 
                     {
                         sort_by: [AcpAgentSort.SUCCESSFUL_JOB_COUNT],
                         top_k: 5,
-                        graduationStatus: AcpGraduationStatus.ALL,
+                        graduationStatus: AcpGraduationStatus.GRADUATED,
                         onlineStatus: AcpOnlineStatus.ONLINE,
                     }
                 );
