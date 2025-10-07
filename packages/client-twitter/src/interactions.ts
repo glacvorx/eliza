@@ -217,7 +217,7 @@ The ACP network offers a wide variety of services, including but not limited to:
 - Generating art/pfp/memes/videos/images/etc.
 
 If the tweet requests blockchain/web3 gaming related content generation services, respond with [SELF_RESPOND_ACP].
-If the tweet requests any other services, information, or content that could be fulfilled by an agent in the ACP network, respond with [RESPOND_ACP].
+If the tweet requests any other services, information, or content that could be fulfilled by an agent in the ACP network, and specifically call out our agent name ({{agentName}}),respond with [RESPOND_ACP].
 
 If the tweet does not request such a service, but should otherwise be responded to, respond with [RESPOND].
 
@@ -239,7 +239,7 @@ Current Post:
 Thread of Tweets You Are Replying To:
 {{formattedConversation}}
 
-# INSTRUCTIONS: Respond with [SELF_RESPOND_ACP] if the tweet requests blockchain/web3 gaming related content generation that can be accomplished by the ACP agent network, [RESPOND_ACP] if the tweet requests any other service/information/content that can be accomplished by the ACP agent network, [RESPOND_PAYMENT_CONFIRMED] if the user has confirmed payment for a previous ACP request, [RESPOND] if a normal response is appropriate, [IGNORE] if no response is needed, or [STOP] if participation should end.
+# INSTRUCTIONS: Respond with [SELF_RESPOND_ACP] if the tweet requests blockchain/web3 gaming related content generation that can be accomplished by the ACP agent network, [RESPOND_ACP] if the tweet requests any other service/information/content that can be accomplished by the ACP agent network and specifically call out our agent name ({{agentName}}), [RESPOND_PAYMENT_CONFIRMED] if the user has confirmed payment for a previous ACP request, [RESPOND] if a normal response is appropriate, [IGNORE] if no response is needed, or [STOP] if participation should end.
 `;
 
 export class TwitterInteractionClient {
