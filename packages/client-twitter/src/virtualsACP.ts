@@ -1,8 +1,9 @@
-import { elizaLogger, IAgentRuntime, stringToUuid, generateText, ModelClass, composeContext, getEmbeddingZeroVector } from "@elizaos/core";
+import { elizaLogger, IAgentRuntime, stringToUuid, generateText, ModelClass, composeContext } from "@elizaos/core";
 import { TwitterConfig } from "./environment";
 import { Address } from '@aa-sdk/core';
 import { Tweet } from "agent-twitter-client";
 import { parseUnits } from "viem";
+import type { IDeliverable } from "@virtuals-protocol/acp-node";
 
 /**
  * Template for determining ACP service usage and generating task details
@@ -1266,7 +1267,14 @@ export async function initializeACPServiceProvider(twitterConfig: TwitterConfig)
                     }
                     if (serviceResult) {
                         try {
-                            await job.deliver(serviceResult);
+                            const deliverable: IDeliverable = {
+                                type: "text",
+                                value: JSON.stringify({
+                                    content: serviceResult.content,
+                                    timestamp: serviceResult.timestamp
+                                })
+                            };
+                            await job.deliver(deliverable);
                             elizaLogger.log(`[Virtuals ACP] Job ${String(job.id)} delivered successfully`);
                         } catch (deliverError) {
                             elizaLogger.error(`[Virtuals ACP] Error delivering job ${String(job.id)}:`, deliverError);
